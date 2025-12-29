@@ -23,6 +23,7 @@ struct EntityManager {
     }
 
     void UpdateAll(float dt);
+    void DrawAll();
     void CleanupRemoved();
     void ClearAll();
 

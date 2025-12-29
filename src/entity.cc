@@ -14,8 +14,6 @@ void Entity::UpdateVariables(float dt) {
     vel.y += grav;
     pos += vel * dt;
     rect = {pos.x, pos.y, siz.x, siz.y};
-
-    bool onAnySurface = false;
 }
 
 void Entity::CheckCollisions() {

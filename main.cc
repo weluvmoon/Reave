@@ -1,38 +1,34 @@
 #include "raylib.h"
 
-#include "src/modules/entities.h"
-#include "src/modules/game.h"
+#include "src/module/game.h"
 
 int main() {
-  const int screenWidth = 640;
-  const int screenHeight = 450;
-  const int FrameCap = 60;
+    const int screenWidth = 640;
+    const int screenHeight = 450;
+    const int FrameCap = 60;
 
-  InitWindow(screenWidth, screenHeight, "Beta");
-  SetTargetFPS(FrameCap);
+    InitWindow(screenWidth, screenHeight, "Beta");
+    SetTargetFPS(FrameCap);
 
-  // Initialize the container structure
+    // Initialize the container structure
 
-  Game game;
-  game.Init();
+    Game game;
 
-  while (!WindowShouldClose()) {
-    game.Update(GetFrameTime());
+    while (!WindowShouldClose()) {
+        game.Update(GetFrameTime());
 
-    BeginDrawing();
+        BeginDrawing();
 
-    ClearBackground(RAYWHITE);
+        ClearBackground(RAYWHITE);
 
-    game.Draw();
+        game.Draw();
 
-    // You can add general UI elements or collision text here
-    DrawFPS(10, 10);
+        // You can add general UI elements or collision text here
+        DrawFPS(10, 10);
 
-    EndDrawing();
-  }
+        EndDrawing();
+    }
 
-  game.Unload();
-
-  CloseWindow();
-  return 0;
+    CloseWindow();
+    return 0;
 }

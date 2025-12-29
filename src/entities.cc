@@ -30,6 +30,13 @@ void EntityManager::UpdateAll(float dt) {
         e->Update(dt);
     }
 }
+void EntityManager::DrawAll() {
+    for (auto &e : objects) {
+        if (!e || e->removed)
+            continue;
+        e->Draw();
+    }
+}
 
 void EntityManager::CleanupRemoved() {
     objects.erase(std::remove_if(objects.begin(), objects.end(),
@@ -41,9 +48,6 @@ void EntityManager::CleanupRemoved() {
 
 void EntityManager::ClearAll() { objects.clear(); }
 
-// --------------------------------------------------
-// Save
-// --------------------------------------------------
 void EntityManager::SaveLevel(const std::string &filename) {
     std::ofstream os(filename, std::ios::binary);
     if (!os)
