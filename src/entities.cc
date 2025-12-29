@@ -1,12 +1,10 @@
 #include "include/entities.h"
+#include "module/entities.h"
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <raylib.h>
 
-// --------------------------------------------------
-// Factory
-// --------------------------------------------------
 Entity *EntityManager::EntityFactory(int typeID, int id, Vector2 pos) {
     switch (typeID) {
     case 1:
