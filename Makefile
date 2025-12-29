@@ -8,9 +8,11 @@ LDFLAGS = -lraylib
 TARGET = game
 
 # List all source files (.cc)
-SRCS =  main.cc \
+SRCS =  src/main.cc \
 		src/game.cc \
 		src/entity.cc \
+		src/enemy.cc \
+		src/enemies.cc \
 		src/entities.cc
 
 # Automatically generate a list of object files (.o) in a build directory

@@ -3,7 +3,6 @@
 #include "constants.h"
 #include "entity.h"
 #include "raylib.h"
-#include <asm-generic/errno.h>
 #include <fstream>
 #include <string>
 #include <vector>

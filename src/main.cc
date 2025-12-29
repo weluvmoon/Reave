@@ -1,6 +1,6 @@
 #include "raylib.h"
 
-#include "src/module/game.h"
+#include "include/game.h"
 
 int main() {
     const int screenWidth = 640;

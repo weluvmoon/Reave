@@ -1,9 +1,8 @@
-#include "module/entity.h"
+#include "include/entity.h"
+#include "include/entities.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <iostream>
-
-#include "module/entities.h"
 
 int Entity::s_instanceCount = 0;
 

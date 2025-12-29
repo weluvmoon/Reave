@@ -1,12 +1,11 @@
 #pragma once
 
+#include "function.h"
 #include "raylib.h"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-
-#include "functions.h"
 
 // Define unique IDs for each entity type
 enum class EntityType : int {
@@ -18,10 +17,9 @@ enum class EntityType : int {
 
 class Entity {
   public:
-    Entity(int id, Vector2 pos, Vector2 siz, Vector2 vel) {
+    Entity(int id, Vector2 pos, Vector2 vel) {
         this->id = id;
         this->pos = pos;
-        this->siz = siz;
         this->vel = vel;
 
         s_instanceCount++;

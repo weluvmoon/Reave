@@ -1,5 +1,7 @@
 #pragma once
 
+#include "enemies.h"
+#include "enemy.h"
 #include "entity.h"
 #include <memory>
 #include <string>

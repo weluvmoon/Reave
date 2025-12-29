@@ -1,9 +1,8 @@
+#include "include/entities.h"
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <raylib.h>
-
-#include "module/entities.h"
 
 // --------------------------------------------------
 // Factory
