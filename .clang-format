@@ -1,1 +1,4 @@
-clang-format -style="{BasedOnStyle: Google, IndentWidth: 4}" -dump-config > .clang-format
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
