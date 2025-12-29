@@ -5,7 +5,7 @@
 
 int main() {
   const int screenWidth = 640;
-  const int screenHeight = 420;
+  const int screenHeight = 450;
   const int FrameCap = 60;
 
   InitWindow(screenWidth, screenHeight, "Beta");
