@@ -1,5 +1,6 @@
 #include "include/entities.h"
 #include <algorithm>
+#include <execution>
 #include <fstream>
 #include <memory>
 #include <raylib.h>
@@ -20,11 +21,12 @@ Entity *EntityManager::EntityFactory(int typeID, int id, Vector2 pos) {
 }
 
 void EntityManager::UpdateAll(float dt) {
-    for (auto &e : objects) {
-        if (!e || e->removed)
-            continue;
-        e->Update(dt);
-    }
+    std::for_each(std::execution::par, objects.begin(), objects.end(),
+                  [dt](auto &e) {
+                      if (e && !e->removed) {
+                          e->Update(dt);
+                      }
+                  });
 }
 void EntityManager::DrawAll() {
     for (auto &e : objects) {
