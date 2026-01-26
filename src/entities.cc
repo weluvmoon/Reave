@@ -9,7 +9,8 @@
 #include "include/objects.h"
 #include "include/tiles.h"
 #include <fstream>
-#include <raylib.h>
+#include <nlohmann/json.hpp>
+#include <string>
 
 void EntityManager::Reserve(size_t capacity) {
     if (capacity > 1000000)
@@ -132,58 +133,58 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
     return physics.pos.size() - 1;
 }
 
+
 void EntityManager::LoadConfigs(const std::string &path) {
     std::ifstream file(path);
 
-    // 1. Safety: Check if file exists and has content
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "FILEIO: Could not open config at [%s]",
-                 path.c_str());
-        return;
-    }
-
-    if (file.peek() == std::ifstream::traits_type::eof()) {
-        TraceLog(LOG_ERROR, "FILEIO: Config file is empty! [%s]", path.c_str());
+        TraceLog(LOG_ERROR, "FILEIO: Could not open config at [%s]", path.c_str());
         return;
     }
 
     try {
-        // 2. Parse ONCE. Using stream operator is safer.
         nlohmann::json data;
         file >> data;
 
-        // 3. Clear existing data only after successful parse
+        if (data.is_null() || data.empty()) {
+            TraceLog(LOG_ERROR, "FILEIO: Config file is empty or invalid! [%s]", path.c_str());
+            return;
+        }
+
+        // 1. Reset state
         EntityRegistry.clear();
         IdToName.clear();
         ConfigMap.clear();
 
-        // 4. Pass 1: Build the Registry (Name -> ID mapping)
+        // 2. Optional: Pre-load the Registry if entity_types exists
         if (data.contains("entity_types") && data["entity_types"].is_array()) {
-            for (auto &item : data["entity_types"]) {
+            for (const auto &item : data["entity_types"]) {
                 std::string name = item.value("name", "UNKNOWN");
                 int id = item.value("id", 0);
-
                 EntityRegistry[name] = id;
                 IdToName[id] = name;
             }
         }
 
-        // 5. Pass 2: Build the Configs (The actual data)
+        // 3. Process every object in the JSON
         for (auto &[name, configData] : data.items()) {
+            // Skip the registry key itself or non-config metadata
             if (name == "entity_types" || !configData.is_object())
                 continue;
 
             EntityConfig cfg;
-            cfg.from_json(configData);
-            TraceLog(LOG_DEBUG, "DEBUG pre-insert [%s] gravity = %.2f",
-                     name.c_str(), cfg.gravity);
+            cfg.from_json(configData); // Will pick up "tID" from inside the CORE2 block
 
-            if (EntityRegistry.count(name)) {
+            if (EntityRegistry.find(name) == EntityRegistry.end()) {
+                EntityRegistry[name] = cfg.tID;
+                IdToName[cfg.tID] = name;
+                TraceLog(LOG_INFO, "FILEIO: Self-registered [%s] with ID %d", name.c_str(), cfg.tID);
+            } else {
                 cfg.tID = EntityRegistry[name];
             }
 
-            if (configData.contains("customVars") &&
-                configData["customVars"].is_object()) {
+            // Parse customVars safely
+            if (configData.contains("customVars") && configData["customVars"].is_object()) {
                 for (auto &[key, value] : configData["customVars"].items()) {
                     if (value.is_number()) {
                         cfg.customVars[key] = value.get<float>();
@@ -197,17 +198,16 @@ void EntityManager::LoadConfigs(const std::string &path) {
         LoadTypes();
 
         for (auto const &[name, cfg] : ConfigMap) {
-            TraceLog(LOG_INFO, "Registered: [%s] ID: %d Gravity: %.2f",
-                     name.c_str(), cfg.tID, cfg.gravity);
+            TraceLog(LOG_INFO, "Final Config: [%s] ID: %d Gravity: %.2f", name.c_str(), cfg.tID, cfg.gravity);
         }
 
-        TraceLog(
-            LOG_INFO,
-            "FILEIO: Successfully loaded %zu types and %zu configs from [%s]",
-            EntityRegistry.size(), ConfigMap.size(), path.c_str());
+        TraceLog(LOG_INFO, "FILEIO: Successfully loaded %zu entities from [%s]", 
+                 ConfigMap.size(), path.c_str());
 
+    } catch (const nlohmann::json::parse_error &e) {
+        TraceLog(LOG_ERROR, "JSON PARSE ERROR in %s: %s", path.c_str(), e.what());
     } catch (const std::exception &e) {
-        TraceLog(LOG_ERROR, "JSON PARSE ERROR: %s", e.what());
+        TraceLog(LOG_ERROR, "GENERAL ERROR loading %s: %s", path.c_str(), e.what());
     }
 }
 

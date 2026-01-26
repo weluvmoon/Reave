@@ -120,23 +120,37 @@ struct EntityConfig {
 
     std::map<std::string, float> customVars;
     void from_json(const nlohmann::json &j) {
-        size = j.value("size", size);
+    // 1. Manual Vector2 Parsing (size)
+        if (j.contains("size") && j["size"].is_array() && j["size"].size() >= 2) {
+            size.x = j["size"][0].get<float>();
+            size.y = j["size"][1].get<float>();
+        }
+    
+        // 2. Manual Color Parsing (color)
+        if (j.contains("color") && j["color"].is_array() && j["color"].size() >= 4) {
+            color.r = j["color"][0].get<unsigned char>();
+            color.g = j["color"][1].get<unsigned char>();
+            color.b = j["color"][2].get<unsigned char>();
+            color.a = j["color"][3].get<unsigned char>();
+        }
+    
+        // 3. Robust Number Parsing (gravity)
         if (j.contains("gravity") && j["gravity"].is_number()) {
             gravity = j["gravity"].get<float>();
-        } else {
-            gravity = 20.0f; // default
         }
-        canCollide = j.value("collide", canCollide);
-        tID = j.value("tID", tID);
-        vID = j.value("vID", vID);
-
+    
+        // 4. Basic types with defaults
+        canCollide = j.value("collide", true);
+        tID = j.value("tID", 0);
+        vID = j.value("vID", 0);
+        health = j.value("health", 100.0f);
+        maxHealth = j.value("maxHealth", health); // Match max to current if not specified
+    
+        // 5. Arrays and Maps
         if (j.contains("behaviors") && j["behaviors"].is_array()) {
             behaviors = j["behaviors"].get<std::vector<std::string>>();
         }
-
-        color = j.value("color", color);
-        health = j.value("health", health);
-
+    
         if (j.contains("customVars") && j["customVars"].is_object()) {
             for (auto &[key, value] : j["customVars"].items()) {
                 if (value.is_number()) {
