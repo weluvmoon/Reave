@@ -2,10 +2,11 @@
 
 #include "constants.h"
 #include "entities.h"
-#include "entity.h"
-#include "raylib.h"
+#include "network.h"
 #include <fstream>
+#include <raylib.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 extern Camera2D camera;
@@ -14,7 +15,6 @@ extern EntityManager entities;
 class Game {
   public:
     Game() {
-        entities.objects.reserve(7500);
         GameState = GameStates::LEVEL;
 
         cameraZoom = 1.0f;
@@ -23,8 +23,9 @@ class Game {
         camera.zoom = cameraZoom;
 
         saveTo = 1, loadTo = 1;
-        ETool = ETools::TILE, EToolNum = 1.0f, EToolSize = 1.0f;
 
+        ETool = ETools::TILE;
+        EToolNum = 0, EToolSize = 1;
         removeRectSize = {25, 25},
         removeRect = {0, 0, removeRectSize.x, removeRectSize.y};
     }
@@ -33,19 +34,21 @@ class Game {
     GameStates GameState;
 
     float cameraZoom, defZoom;
-    Vector2 cameraTarg;
+    Vector2 cameraTarg, cameraOffset;
 
-    float saveTo, loadTo;
+    char saveTo, loadTo;
 
-    enum ETools { TILE, ITEM, OBJECT, ENEMY };
-    ETools ETool;
-    float EToolNum, EToolSize;
+    enum ETools { TILE, ENEMY, OBJECT, ITEM };
+    int ETool = ETools::TILE;
+    int EToolNum = 0, EToolSize = 1;
 
     Vector2 removeRectSize;
     Rectangle removeRect;
 
+    void Init();
     void Update(float dt);
     void Draw();
+    void Unload();
 
     void ManageState();
     void UpdateState(float dt);
@@ -55,7 +58,7 @@ class Game {
     void DrawEntities();
 
     void DrawGrid();
-    void EditLevel();
-    void SpawnEntity();
+    void EditLevel(float dt);
+    void SpawnEntity(int nm, Vector2 tg);
     void RemoveEntity();
 };

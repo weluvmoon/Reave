@@ -1,0 +1,263 @@
+{
+  "entity_types": [
+    {
+      "name": "CORE",
+      "id": 0
+    },
+    {
+      "name": "CHARACTER",
+      "id": 1
+    },
+    {
+      "name": "WALKER",
+      "id": 1000
+    },
+    {
+      "name": "BOUNCER",
+      "id": 1001
+    },
+    {
+      "name": "SHOOTER",
+      "id": 1002
+    },
+    {
+      "name": "TILE",
+      "id": 1500
+    },
+    {
+      "name": "HITBOX",
+      "id": 1750
+    },
+    {
+      "name": "HURTBOX",
+      "id": 1751
+    },
+    {
+      "name": "HAZARD",
+      "id": 1752
+    },
+    {
+      "name": "BULLET",
+      "id": 1753
+    },
+    {
+      "name": "MOD_ENEMY",
+      "id": 5000
+    }
+  ],
+  "CORE": {
+    "vID": 1,
+    "collide": true,
+    "size": [
+      20.0,
+      24.0
+    ],
+    "health": 100,
+    "color": [
+      255,
+      0,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "customVars": {
+      "MAX_SPEED": 500.0
+    }
+  },
+  "CORE2": {
+    "tID": 2,
+    "vID": 1,
+    "collide": true,
+    "size": [
+      20.0,
+      24.0
+    ],
+    "health": 100,
+    "color": [
+      255,
+      0,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "customVars": {
+      "MAX_SPEED": 500.0
+    }
+  },
+  "CHARACTER": {
+    "vID": 1,
+    "size": [
+      20.0,
+      24.0
+    ],
+    "gravity": 20.0,
+    "collide": true,
+    "health": 100,
+    "color": [
+      200,
+      0,
+      200,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "customVars": {
+      "MAX_SPEED": 500.0
+    }
+  },
+  "WALKER": {
+    "vID": 1,
+    "size": [
+      18.0,
+      24.0
+    ],
+    "gravity": 20.0,
+    "collide": true,
+    "health": 100,
+    "color": [
+      255,
+      0,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "behaviors": [
+      "enemy",
+      "flip_on_wall",
+      "jump_on_wall"
+    ],
+    "customVars": {
+      "ACEL": 25.0,
+      "MAX_SPEED": 750.0
+    }
+  },
+  "BOUNCER": {
+    "vID": 1,
+    "size": [
+      22.0,
+      28.0
+    ],
+    "gravity": 20.0,
+    "collide": true,
+    "health": 100,
+    "color": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "behaviors": [
+      "enemy",
+      "flip_on_wall",
+      "jump_on_ground"
+    ],
+    "customVars": {
+      "ACEL": 25.0,
+      "MAX_SPEED": 250.0,
+      "JUMP_VAR": -750.0
+    }
+  },
+  "SHOOTER": {
+    "vID": 1,
+    "size": [
+      22.0,
+      28.0
+    ],
+    "gravity": 20.0,
+    "collide": true,
+    "health": 100,
+    "color": [
+      255,
+      100,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "behaviors": [
+      "enemy",
+      "flip_on_wall",
+      "jump_on_wall"
+    ],
+    "customVars": {
+      "ACEL": 25.0,
+      "MAX_SPEED": 250.0,
+      "JUMP_VAR": -750.0
+    }
+  },
+  "TILE": {
+    "size": [
+      32.0,
+      32.0
+    ],
+    "gravity": 0.0,
+    "collide": true,
+    "health": 100,
+    "color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "texture": "assets/textures/main.png"
+  },
+  "HITBOX": {
+    "size": [
+      32.0,
+      32.0
+    ],
+    "collide": false,
+    "gravity": 0.0,
+    "health": 100,
+    "color": [
+      0,
+      255,
+      0,
+      100
+    ]
+  },
+  "HURTBOX": {
+    "size": [
+      32.0,
+      32.0
+    ],
+    "collide": false,
+    "gravity": 0.0,
+    "health": 100,
+    "color": [
+      255,
+      0,
+      0,
+      100
+    ]
+  },
+  "HAZARD": {
+    "size": [
+      12.0,
+      12.0
+    ],
+    "collide": false,
+    "gravity": 0.0,
+    "health": 100,
+    "color": [
+      200,
+      200,
+      200,
+      255
+    ]
+  },
+  "BULLET": {
+    "size": [
+      12.0,
+      12.0
+    ],
+    "collide": false,
+    "gravity": 20.0,
+    "health": 100,
+    "color": [
+      200,
+      200,
+      200,
+      255
+    ]
+  }
+}

@@ -1,41 +1,56 @@
 #include "include/game.h"
+#include "include/assets.h"
+#include "include/collision.h"
 #include "include/constants.h"
+#include "include/data.h"
 #include "include/entities.h"
-#include "include/entity.h"
+#include "include/mod.h"
+#include "include/network.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
+#include <algorithm>
+#include <cstdio>
 
-Camera2D camera;
-EntityManager entities;
+int clientSock;
+struct sockaddr_in serverAddr;
+
+std::string statusMessage = "";
+float messageTimer = 0.0f;
+
+void Game::Init() {
+    em.LoadConfigs("assets/entities.json");
+    em.Reserve(7500);
+}
 
 void Game::Update(float dt) {
-    entities.CleanupRemoved();
+    if (dt <= 0.0f)
+        return;
     UpdateState(dt);
     ManageState();
 }
 
 void Game::Draw() { DrawState(); }
 
+void Game::Unload() {
+    em.ClearAll();
+}
+
 void Game::ManageState() {
     switch (GameState) {
     case TITLE:
-
-        if (IsKeyPressed(KEY_ENTER)) {
+        if (IsKeyPressed(KEY_ENTER))
             GameState = LEVEL;
-        }
         break;
     case LEVEL:
-
-        if (IsKeyPressed(KEY_ENTER)) {
+        if (IsKeyPressed(KEY_ENTER))
             GameState = EDITOR;
-        }
         break;
     case EDITOR:
-
-        if (IsKeyPressed(KEY_ENTER)) {
+        if (IsKeyPressed(KEY_ENTER))
             GameState = LEVEL;
-        }
+
+        // Camera sync
         camera.zoom = cameraZoom;
         camera.target = cameraTarg;
         break;
@@ -43,47 +58,99 @@ void Game::ManageState() {
         break;
     }
 }
+
 void Game::UpdateState(float dt) {
     switch (GameState) {
-    case TITLE:
-        break;
     case LEVEL:
-        entities.UpdateAll(dt);
+        em.UpdateAll(dt);
+        EntitySystem(em);
+        cS.ResolveAll(em, dt);
+
+        cameraOffset = {GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
+        cameraZoom = 1.0f;
+        for (size_t i = 0; i < em.rendering.typeID.size(); ++i) {
+            if (em.rendering.typeID[i] == EntityRegistry["CHARACTER"])
+                cameraTarg = {em.physics.pos[i].x - cameraOffset.x,
+                              em.physics.pos[i].y - cameraOffset.y};
+        }
+
+        camera.zoom = cameraZoom;
+        camera.target = cameraTarg;
+
         break;
     case EDITOR:
-        EditLevel();
+        EntitySystem(em);
+        EditLevel(dt);
+
+        camera.zoom = cameraZoom;
+        camera.target = cameraTarg;
+
+        if (IsKeyPressed(KEY_SAVE)) {
+            if (em.SaveLevel("bin/content/level/level-1")) {
+                statusMessage = "Level Saved!";
+            } else {
+                statusMessage = "Save Failed!";
+            }
+            messageTimer = 3.0f; // Show for 3 seconds
+            cS.ResetTileGrid();
+        } else if (IsKeyPressed(KEY_LOAD)) {
+            if (em.LoadLevel("bin/content/level/level-1")) {
+                statusMessage = "Level Loaded!";
+            } else {
+                statusMessage = "Load Failed (File Not Found)!";
+            }
+            messageTimer = 3.0f;
+            cS.ResetTileGrid();
+        }
+
+        // Decrease timer every frame
+        if (messageTimer > 0)
+            messageTimer -= GetFrameTime();
+
         break;
     default:
         break;
     }
 }
+
 void Game::DrawState() {
     switch (GameState) {
     case TITLE:
         DrawText("hello", 75, 75, 15, BLACK);
-
+        break;
+    case MENU: // Handle the missing case
+        // Draw menu logic here
         break;
     case LEVEL:
         BeginMode2D(camera);
-        entities.DrawAll();
+
+        em.DrawAll(camera);
 
         DrawCircle(50, 50, 50, BLACK);
-
         EndMode2D();
-
-        DrawText("hello", 75, 75, 15, BLUE);
         break;
     case EDITOR:
         BeginMode2D(camera);
-        entities.DrawAll();
+
+        em.DrawAll(camera);
 
         DrawGrid();
-        DrawRectangleLinesEx(removeRect, 1.0f, BLACK);
+        DrawRectangleLinesEx(removeRect, 2.0f, BLACK);
         EndMode2D();
 
-        DrawText("hello", 75, 75, 15, GREEN);
-        break;
-    default:
+        DrawText(TextFormat("Etool: %d", ETool), 10, 30, 20, BLACK);
+        DrawText(TextFormat("EtoolNum: %d", EToolNum), 10, 50, 20, BLACK);
+        DrawText(TextFormat("EtoolSize: %d", EToolSize), 10, 70, 20, BLACK);
+
+        int entityCount = em.GetActiveCount();
+        DrawText(TextFormat("Entities: %d", entityCount), 10, 90, 20, GREEN);
+
+        Vector2 messageLoc =
+            Vector2{GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
+        if (messageTimer > 0) {
+            DrawText(statusMessage.c_str(), messageLoc.x, messageLoc.y, 20,
+                     DARKGRAY);
+        }
         break;
     }
 }
@@ -93,70 +160,117 @@ void Game::DrawGrid() {
     Vector2 bottomRight = GetScreenToWorld2D(
         {(float)GetScreenWidth(), (float)GetScreenHeight()}, camera);
 
-    int startX = floor(topLeft.x / GRID_SIZE) * GRID_SIZE;
-    int startY = floor(topLeft.y / GRID_SIZE) * GRID_SIZE;
-    int endX = ceil(bottomRight.x / GRID_SIZE) *
-               GRID_SIZE; // Ensure grid covers full screen
-    int endY = ceil(bottomRight.y / GRID_SIZE) * GRID_SIZE;
+    float startX = floor(topLeft.x / GRID_SIZE) * GRID_SIZE;
+    float startY = floor(topLeft.y / GRID_SIZE) * GRID_SIZE;
+    float endX = ceil(bottomRight.x / GRID_SIZE) * GRID_SIZE;
+    float endY = ceil(bottomRight.y / GRID_SIZE) * GRID_SIZE;
 
-    // OPTIMIZATION: Manual Line Batching
-    // Instead of hundreds of DrawLine calls, we send all vertices to the GPU at
-    // once.
     rlBegin(RL_LINES);
-    rlColor4ub(160, 160, 160, 255); // GRAY
-    for (int x = startX; x <= endX; x += GRID_SIZE) {
-        rlVertex2f((float)x, (float)startY);
-        rlVertex2f((float)x, (float)endY);
+    rlColor4ub(160, 160, 160, 255);
+    for (float x = startX; x <= endX; x += GRID_SIZE) {
+        rlVertex2f(x, startY);
+        rlVertex2f(x, endY);
     }
-    for (int y = startY; y <= endY; y += GRID_SIZE) {
-        rlVertex2f((float)startX, (float)y);
-        rlVertex2f((float)endX, (float)y);
+    for (float y = startY; y <= endY; y += GRID_SIZE) {
+        rlVertex2f(startX, y);
+        rlVertex2f(endX, y);
     }
     rlEnd();
 }
 
-void Game::EditLevel() {
+void Game::EditLevel(float dt) {
     float zoomS = 0.1f;
-    float moveS = 5.0f;
+    float moveS = 400.0f; // Snappier for 2025
     Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), camera);
     float wheel = GetMouseWheelMove();
 
     // Snap to grid
-    Vector2 snapped;
-    snapped.x = floor(mousePos.x / GRID_SIZE) * GRID_SIZE + GRID_SIZE / 2.0f;
-    snapped.y = floor(mousePos.y / GRID_SIZE) * GRID_SIZE + GRID_SIZE / 2.0f;
+    Vector2 snapped = {
+        floor(mousePos.x / GRID_SIZE) * GRID_SIZE + GRID_SIZE / 2.0f,
+        floor(mousePos.y / GRID_SIZE) * GRID_SIZE + GRID_SIZE / 2.0f};
 
-    // Camera zoom
-    camera.zoom = cameraZoom;
-    camera.target = cameraTarg;
-    cameraZoom = std::clamp(cameraZoom + wheel * 0.1f, 0.2f, 5.0f);
+    cameraZoom = std::clamp(cameraZoom + wheel * zoomS, 0.2f, 5.0f);
 
     // Camera Controls
     if (IsKeyDown(KEY_MOVE_UP))
-        cameraTarg.y -= moveS;
-    else if (IsKeyDown(KEY_MOVE_DOWN))
-        cameraTarg.y += moveS;
+        cameraTarg.y -= moveS * dt;
+    if (IsKeyDown(KEY_MOVE_DOWN))
+        cameraTarg.y += moveS * dt;
     if (IsKeyDown(KEY_MOVE_LEFT))
-        cameraTarg.x -= moveS;
-    else if (IsKeyDown(KEY_MOVE_RIGHT))
-        cameraTarg.x += moveS;
+        cameraTarg.x -= moveS * dt;
+    if (IsKeyDown(KEY_MOVE_RIGHT))
+        cameraTarg.x += moveS * dt;
 
-    // Tool rectangle
-    removeRectSize = {EToolSize * GRID_SIZE, EToolSize * GRID_SIZE};
-    removeRect = {
-        snapped.x - removeRectSize.x / 2,
-        snapped.y - removeRectSize.y / 2,
-        removeRectSize.x,
-    };
+    // Tool logic
+    removeRectSize = {(float)EToolSize * GRID_SIZE * 0.9f,
+                      (float)EToolSize * GRID_SIZE * 0.9f};
+    removeRect = {snapped.x - removeRectSize.x / 2,
+                  snapped.y - removeRectSize.y / 2, removeRectSize.x,
+                  removeRectSize.y};
 
+    // Tool Selection (Consolidated)
+    if (IsKeyPressed(KEY_NEXT_TOOL))
+        ETool++;
+    if (IsKeyPressed(KEY_LAST_TOOL))
+        ETool--;
     if (IsKeyPressed(KEY_NEXT_TOOL_NUM))
-        EToolNum++;
+        EToolNum = std::min(EToolNum + 1, 2000);
     if (IsKeyPressed(KEY_LAST_TOOL_NUM))
-        EToolNum--;
+        EToolNum = std::max(EToolNum - 1, 0);
     if (IsKeyPressed(KEY_NEXT_TOOL_SIZE))
-        EToolSize++;
+        EToolSize = std::min(EToolSize + 1, 10);
     if (IsKeyPressed(KEY_LAST_TOOL_SIZE))
-        EToolSize--;
+        EToolSize = std::max(EToolSize - 1, 1);
+
+    if (IsKeyPressed(KEY_Z))
+        EToolNum = 0;
+    else if (IsKeyPressed(KEY_X))
+        EToolNum = EntityTys::TYTILE;
+    else if (IsKeyPressed(KEY_C))
+        EToolNum = EntityTys::TYHITBOX;
+    else if (IsKeyPressed(KEY_V))
+        EToolNum = EntityTys::TYWALKER;
+
+    if (IsKeyDown(KEY_R)) {
+        RemoveEntity();
+        cS.ResetTileGrid();
+    }
+    if (IsKeyDown(KEY_PLACE)) {
+        SpawnEntity(EToolNum, snapped);
+        cS.ResetTileGrid();
+    }
+
+    if (IsKeyPressed(KEY_F5)) {
+        em.LoadConfigs("assets/entities.json");
+        TraceLog(LOG_INFO, "Configs reloaded successfully!");
+    }
 }
 
-void Game::SpawnEntity() {}
+void Game::SpawnEntity(int nm, Vector2 tg) {
+    Vector2 spawnPos = {tg.x - GRID_SIZE / 2, tg.y - GRID_SIZE / 2};
+
+    for (size_t i = 0; i < em.physics.pos.size(); ++i) {
+        if (em.physics.active[i] && em.physics.pos[i].x == spawnPos.x &&
+            em.physics.pos[i].y == spawnPos.y)
+            return;
+    }
+
+    if (IdToName.count(nm)) {
+        em.AddEntityJ(IdToName[nm], spawnPos);
+    }
+}
+
+void Game::RemoveEntity() {
+    for (size_t i = 0; i < em.physics.pos.size();) {
+        if (!em.physics.active[i]) {
+            i++;
+            continue;
+        }
+
+        if (CheckCollisionRecs(em.physics.rect[i], removeRect)) {
+            em.FastRemove(i);
+        } else {
+            i++;
+        }
+    }
+}

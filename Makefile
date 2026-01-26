@@ -1,41 +1,50 @@
-# Define variables for the compiler and flags
 CXX = g++
-# Use -O0 or -Og during development for faster compilation times than -O2/-O3
-CXXFLAGS = -std=c++20 -Wall -Wextra -g -O0
+CXXFLAGS = -std=c++20 -Wall -Wextra -g -ltbb
 LDFLAGS = -lraylib
-
-# Define the target executable name
 TARGET = game
 
-# List all source files (.cc)
-SRCS =  src/main.cc \
-		src/game.cc \
-		src/entity.cc \
-		src/enemy.cc \
-		src/enemies.cc \
-		src/entities.cc
+# 1. Detect all .cc files in the src/ directory
+ALL_SRCS = $(wildcard src/*.cc)
 
-# Automatically generate a list of object files (.o) in a build directory
-# This assumes you have a 'build' directory ready (mkdir build)
+# 2. Extract main.cc and everything else separately
+MAIN_SRC = src/main.cc
+OTHER_SRCS = $(filter-out $(MAIN_SRC), $(ALL_SRCS))
+
+# 3. Combine them ensuring main.cc is first
+SRCS = $(MAIN_SRC) $(OTHER_SRCS)
+
+# Automatically generate object paths in the build directory
 OBJS = $(patsubst %.cc, build/%.o, $(SRCS))
 
 # --- Rules ---
 
-# The default rule: build the target executable from object files
 $(TARGET): $(OBJS)
 	@echo "Linking..."
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
-# Rule to compile a single .cc file into a .o file
-# This rule utilizes ccache automatically because we assume 'g++' resolves to 'ccache g++' via PATH
 build/%.o: %.cc
 	@echo "Compiling $<..."
-	@mkdir -p $(dir $@) # Ensure the directory exists
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+run: $(TARGET)
+	@echo "Running $(TARGET) with game audio priority..."
+	@export LD_LIBRARY_PATH=$${LD_LIBRARY_PATH}:. && \
+	PULSE_PROP="media.role=game" ./$(TARGET)
 
-# Clean rule: remove generated files
+debug: $(TARGET)
+	@echo "Launching GDB..."
+	@export LD_LIBRARY_PATH=$${LD_LIBRARY_PATH}:. && gdb -ex run ./$(TARGET)
+
+# Optional: Add a memory check target using Valgrind
+memcheck: $(TARGET)
+	@echo "Checking for memory leaks..."
+	@export LD_LIBRARY_PATH=$${LD_LIBRARY_PATH}:. && valgrind --leak-check=full ./$(TARGET)
+
 clean:
 	@echo "Cleaning up..."
 	rm -rf build/ $(TARGET)
 
-.PHONY: all clean
+.PHONY: all clean run debug memcheck
+
+

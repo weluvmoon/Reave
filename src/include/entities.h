@@ -1,36 +1,43 @@
 #pragma once
-
-#include "enemies.h"
-#include "enemy.h"
-#include "entity.h"
-#include <memory>
+#include "data.h"
+#include "raylib.h"
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
 struct EntityManager {
-    std::vector<std::unique_ptr<Entity>> objects;
+    PhysicsComponent physics;
+    RenderComponent rendering;
+    StatsComponent stats;
 
-    // -------- Factory (DECLARATION ONLY) --------
-    Entity *EntityFactory(int typeID, int id, Vector2 pos);
+    std::vector<EntityVars> vars;
+    std::unordered_map<std::string, EntityConfig> ConfigMap;
 
-    // -------- Entity management --------
-    template <typename T, typename... Args> T *AddEntity(Args &&...args) {
-        // Create the unique_ptr and get the raw pointer before moving it into
-        // the container
-        auto entity = std::make_unique<T>(std::forward<Args>(args)...);
-        T *raw = entity.get();
-
-        objects.emplace_back(std::move(entity));
-        return raw;
-    }
+    void Reserve(size_t capacity);
+    size_t AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
+                     float gravity, Color col);
+    size_t AddEntityJ(std::string typeName, Vector2 pos);
+    void LoadConfigs(const std::string &path);
 
     void UpdateAll(float dt);
-    void DrawAll();
-    void CleanupRemoved();
-    void ClearAll();
+    void DrawAll(Camera2D camera);
 
-    void SaveLevel(const std::string &filename);
-    void LoadLevel(const std::string &filename);
+    void Compact();
+    void FastRemove(size_t index);
+    void ClearAll();
+    int GetActiveCount();
+
+    void SyncRect(EntityManager &e, size_t i);
+
+    bool SaveLevel(const std::string &filename);
+    bool LoadLevel(const std::string &filename);
 };
 
-extern EntityManager entities;
+void EntitySystem(EntityManager &em);
+
+extern EntityManager em;
