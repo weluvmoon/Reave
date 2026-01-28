@@ -37,6 +37,7 @@ void BehaveSystem(EntityManager &em, size_t i) {
                 em.SyncRect(em, i);
             }
         }
+
         if (behavior == "jump_on_ground") {
             if (em.physics.grounded[i]) {
                 if (v.count("JUMP_VAR")) {

@@ -1,4 +1,3 @@
-#include "include/entities.h"
 #include "include/assets.h"
 #include "include/behaves.h"
 #include "include/character.h"
@@ -6,6 +5,7 @@
 #include "include/constants.h"
 #include "include/data.h"
 #include "include/enemies.h"
+#include "include/entities.h"
 #include "include/objects.h"
 #include "include/tiles.h"
 #include <fstream>
@@ -76,8 +76,8 @@ size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
     stats.health.push_back(100.0f);
     stats.maxHealth.push_back(100.0f);
 
-    TraceLog(LOG_INFO, "ENTITY: Spawned %s at (%.1f, %.1f) | Active Types: %zu",
-             IdToName[typeID].c_str(), pos.x, pos.y, EntityRegistry.size());
+    TraceLog(LOG_INFO, "ADDING ENTITY: [%s] Gravity: %.2f",
+             IdToName[typeID].c_str(), gravity);
     vars.push_back(EntityVars());
     return physics.pos.size() - 1;
 }
@@ -133,12 +133,12 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
     return physics.pos.size() - 1;
 }
 
-
 void EntityManager::LoadConfigs(const std::string &path) {
     std::ifstream file(path);
 
     if (!file.is_open()) {
-        TraceLog(LOG_ERROR, "FILEIO: Could not open config at [%s]", path.c_str());
+        TraceLog(LOG_ERROR, "FILEIO: Could not open config at [%s]",
+                 path.c_str());
         return;
     }
 
@@ -147,7 +147,8 @@ void EntityManager::LoadConfigs(const std::string &path) {
         file >> data;
 
         if (data.is_null() || data.empty()) {
-            TraceLog(LOG_ERROR, "FILEIO: Config file is empty or invalid! [%s]", path.c_str());
+            TraceLog(LOG_ERROR, "FILEIO: Config file is empty or invalid! [%s]",
+                     path.c_str());
             return;
         }
 
@@ -173,18 +174,21 @@ void EntityManager::LoadConfigs(const std::string &path) {
                 continue;
 
             EntityConfig cfg;
-            cfg.from_json(configData); // Will pick up "tID" from inside the CORE2 block
+            cfg.from_json(
+                configData); // Will pick up "tID" from inside the CORE2 block
 
             if (EntityRegistry.find(name) == EntityRegistry.end()) {
                 EntityRegistry[name] = cfg.tID;
                 IdToName[cfg.tID] = name;
-                TraceLog(LOG_INFO, "FILEIO: Self-registered [%s] with ID %d", name.c_str(), cfg.tID);
+                TraceLog(LOG_INFO, "FILEIO: Self-registered [%s] with ID %d",
+                         name.c_str(), cfg.tID);
             } else {
                 cfg.tID = EntityRegistry[name];
             }
 
             // Parse customVars safely
-            if (configData.contains("customVars") && configData["customVars"].is_object()) {
+            if (configData.contains("customVars") &&
+                configData["customVars"].is_object()) {
                 for (auto &[key, value] : configData["customVars"].items()) {
                     if (value.is_number()) {
                         cfg.customVars[key] = value.get<float>();
@@ -198,16 +202,19 @@ void EntityManager::LoadConfigs(const std::string &path) {
         LoadTypes();
 
         for (auto const &[name, cfg] : ConfigMap) {
-            TraceLog(LOG_INFO, "Final Config: [%s] ID: %d Gravity: %.2f", name.c_str(), cfg.tID, cfg.gravity);
+            TraceLog(LOG_INFO, "Final Config: [%s] ID: %d Gravity: %.2f",
+                     name.c_str(), cfg.tID, cfg.gravity);
         }
 
-        TraceLog(LOG_INFO, "FILEIO: Successfully loaded %zu entities from [%s]", 
+        TraceLog(LOG_INFO, "FILEIO: Successfully loaded %zu entities from [%s]",
                  ConfigMap.size(), path.c_str());
 
     } catch (const nlohmann::json::parse_error &e) {
-        TraceLog(LOG_ERROR, "JSON PARSE ERROR in %s: %s", path.c_str(), e.what());
+        TraceLog(LOG_ERROR, "JSON PARSE ERROR in %s: %s", path.c_str(),
+                 e.what());
     } catch (const std::exception &e) {
-        TraceLog(LOG_ERROR, "GENERAL ERROR loading %s: %s", path.c_str(), e.what());
+        TraceLog(LOG_ERROR, "GENERAL ERROR loading %s: %s", path.c_str(),
+                 e.what());
     }
 }
 

@@ -1,9 +1,9 @@
-#include "include/game.h"
 #include "include/assets.h"
 #include "include/collision.h"
 #include "include/constants.h"
 #include "include/data.h"
 #include "include/entities.h"
+#include "include/game.h"
 #include "include/mod.h"
 #include "include/network.h"
 #include "raylib.h"
@@ -19,8 +19,7 @@ std::string statusMessage = "";
 float messageTimer = 0.0f;
 
 void Game::Init() {
-    em.LoadConfigs("assets/entities.json");
-    em.Reserve(7500);
+    // am.PlayMus(MUS_CHASE);
 }
 
 void Game::Update(float dt) {
@@ -32,9 +31,7 @@ void Game::Update(float dt) {
 
 void Game::Draw() { DrawState(); }
 
-void Game::Unload() {
-    em.ClearAll();
-}
+void Game::Unload() { em.ClearAll(); }
 
 void Game::ManageState() {
     switch (GameState) {
@@ -49,10 +46,6 @@ void Game::ManageState() {
     case EDITOR:
         if (IsKeyPressed(KEY_ENTER))
             GameState = LEVEL;
-
-        // Camera sync
-        camera.zoom = cameraZoom;
-        camera.target = cameraTarg;
         break;
     default:
         break;
@@ -103,7 +96,6 @@ void Game::UpdateState(float dt) {
             cS.ResetTileGrid();
         }
 
-        // Decrease timer every frame
         if (messageTimer > 0)
             messageTimer -= GetFrameTime();
 
@@ -256,6 +248,7 @@ void Game::SpawnEntity(int nm, Vector2 tg) {
     }
 
     if (IdToName.count(nm)) {
+        am.PlaySfx(SFX_ADDENT);
         em.AddEntityJ(IdToName[nm], spawnPos);
     }
 }
@@ -268,6 +261,7 @@ void Game::RemoveEntity() {
         }
 
         if (CheckCollisionRecs(em.physics.rect[i], removeRect)) {
+            am.PlaySfx(SFX_REMOVENT);
             em.FastRemove(i);
         } else {
             i++;

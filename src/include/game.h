@@ -15,7 +15,7 @@ extern EntityManager entities;
 class Game {
   public:
     Game() {
-        GameState = GameStates::LEVEL;
+        GameState = GameStates::TITLE;
 
         cameraZoom = 1.0f;
         cameraTarg = Vector2{0, 0};

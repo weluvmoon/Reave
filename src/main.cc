@@ -1,7 +1,7 @@
 #include "include/assets.h"
 #include "include/constants.h"
-#include "include/game.h"
 #include "include/entities.h"
+#include "include/game.h"
 #include "raylib.h"
 
 Camera2D camera;
@@ -28,6 +28,8 @@ int main() {
     }
 
     am.Startup();
+    em.LoadConfigs("assets/entities.json");
+    em.Reserve(7500);
     game.Init();
 
     while (!WindowShouldClose()) {
@@ -53,4 +55,3 @@ int main() {
     CloseWindow();
     return 0;
 }
-

@@ -99,10 +99,7 @@
       200,
       255
     ],
-    "texture": "assets/textures/main.png",
-    "customVars": {
-      "MAX_SPEED": 500.0
-    }
+    "texture": "assets/textures/main.png"
   },
   "WALKER": {
     "vID": 1,

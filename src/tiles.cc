@@ -1,15 +1,16 @@
-#include "include/tiles.h"
 #include "include/data.h"
 #include "include/entities.h"
+#include "include/tiles.h"
 #include <raylib.h>
 
 void TileSystem(EntityManager &em, size_t i) {
-    if (em.rendering.typeID[i] == EntityTys::TYTILE) {
-        if (!em.physics.initialized[i]) {
-            em.physics.gravity[i] = 0;
-            em.stats.maxHealth[i] = 100.0f;
+    if (em.rendering.typeID[i] != EntityTys::TYTILE)
+        return;
 
-            em.physics.initialized[i] = true;
-        }
+    if (!em.physics.initialized[i]) {
+        em.physics.gravity[i] = 0;
+        em.stats.maxHealth[i] = 100.0f;
+
+        em.physics.initialized[i] = true;
     }
 }
