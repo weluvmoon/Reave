@@ -44,6 +44,7 @@ void EntityManager::Reserve(size_t capacity) {
     stats.maxHealth.reserve(capacity);
 
     vars.reserve(capacity);
+    behs.reserve(capacity);
 }
 
 size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
@@ -76,9 +77,12 @@ size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
     stats.health.push_back(100.0f);
     stats.maxHealth.push_back(100.0f);
 
+    vars.push_back(EntityVars());
+    behs.push_back(EntityBehaves());
+
     TraceLog(LOG_INFO, "ADDING ENTITY: [%s] Gravity: %.2f",
              IdToName[typeID].c_str(), gravity);
-    vars.push_back(EntityVars());
+
     return physics.pos.size() - 1;
 }
 
@@ -127,6 +131,12 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
         newVars.values[key] = val;
     }
     vars.push_back(newVars);
+
+    EntityBehaves newBehs;
+    for (auto const &[key, val] : cfg.customBehs) {
+        newBehs.values[key] = val;
+    }
+    behs.push_back(newBehs);
 
     TraceLog(LOG_INFO, "ADDING ENTITY: [%s] Gravity: %.2f", typeName.c_str(),
              cfg.gravity);
@@ -192,6 +202,15 @@ void EntityManager::LoadConfigs(const std::string &path) {
                 for (auto &[key, value] : configData["customVars"].items()) {
                     if (value.is_number()) {
                         cfg.customVars[key] = value.get<float>();
+                    }
+                }
+            }
+
+            if (configData.contains("behaviors") &&
+                configData["behaviors"].is_object()) {
+                for (auto &[key, value] : configData["behaviors"].items()) {
+                    if (value.is_number()) {
+                        cfg.customBehs[key] = value.get<float>();
                     }
                 }
             }
@@ -303,6 +322,7 @@ void EntityManager::FastRemove(size_t index) {
 
         // Ensure variables are swapped to the new index
         vars[index] = vars[last];
+        behs[index] = behs[last];
     }
 
     // Ridiculous Speed: Pop all vectors to keep them perfectly aligned
@@ -332,7 +352,9 @@ void EntityManager::FastRemove(size_t index) {
 
     stats.health.pop_back();
     stats.maxHealth.pop_back();
+
     vars.pop_back();
+    behs.pop_back();
 }
 
 void EntityManager::ClearAll() {
@@ -364,6 +386,7 @@ void EntityManager::ClearAll() {
     stats.maxHealth.clear();
 
     vars.clear();
+    behs.clear();
 }
 
 int EntityManager::GetActiveCount() {
@@ -431,6 +454,16 @@ bool EntityManager::SaveLevel(const std::string &filename) {
         outFile.write((char *)&varCount, sizeof(size_t));
 
         for (auto const &[key, val] : vars[i].values) {
+            size_t keyLen = key.size();
+            outFile.write((char *)&keyLen, sizeof(size_t));
+            outFile.write(key.data(), keyLen);
+            outFile.write((char *)&val, sizeof(float));
+        }
+
+        size_t behCount = behs[i].values.size();
+        outFile.write((char *)&behCount, sizeof(size_t));
+
+        for (auto const &[key, val] : behs[i].values) {
             size_t keyLen = key.size();
             outFile.write((char *)&keyLen, sizeof(size_t));
             outFile.write(key.data(), keyLen);
@@ -506,6 +539,30 @@ bool EntityManager::LoadLevel(const std::string &filename) {
             float val = 0;
             inFile.read((char *)&val, sizeof(float));
             vars[index].values[key] = val;
+        }
+
+        // Behaviors
+        size_t behCount = 0;
+        if (!inFile.read((char *)&behCount, sizeof(size_t)))
+            break;
+
+        for (size_t v = 0; v < behCount; ++v) {
+            size_t keyLen = 0;
+            inFile.read((char *)&keyLen, sizeof(size_t));
+
+            // SAFETY CHECK: Prevent the 4.8 exabyte crash
+            if (keyLen > 1024) {
+                TraceLog(LOG_ERROR,
+                         "Invalid Save File: String length too long!");
+                return false;
+            }
+
+            std::string key(keyLen, ' ');
+            inFile.read(&key[0], keyLen); // Read into string buffer
+
+            float val = 0;
+            inFile.read((char *)&val, sizeof(float));
+            behs[index].values[key] = val;
         }
     }
 

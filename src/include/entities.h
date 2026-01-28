@@ -16,6 +16,8 @@ struct EntityManager {
     StatsComponent stats;
 
     std::vector<EntityVars> vars;
+    std::vector<EntityBehaves> behs;
+
     std::unordered_map<std::string, EntityConfig> ConfigMap;
 
     void Reserve(size_t capacity);

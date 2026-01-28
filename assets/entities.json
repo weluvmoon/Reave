@@ -195,7 +195,34 @@
       0,
       255
     ],
-    "texture": "assets/textures/main.png"
+    "texture": "assets/textures/main.png",
+    "behaviors": [
+      "tile"
+    ]
+  },
+  "TILE_ONE_WAY_UP": {
+    "tID": 1501,
+    "vID": 1,
+    "collide": true,
+    "size": [
+      20.0,
+      24.0
+    ],
+    "health": 100,
+    "color": [
+      50,
+      50,
+      50,
+      255
+    ],
+    "texture": "assets/textures/main.png",
+    "customVars": {
+      "MAX_SPEED": 500.0
+    },
+    "behaviors": [
+      "tile",
+      "on_way"
+    ]
   },
   "HITBOX": {
     "size": [

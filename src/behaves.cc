@@ -4,24 +4,26 @@
 #include <raylib.h>
 
 void BehaveSystem(EntityManager &em, size_t i) {
+    // 1. Identify the entity and its configuration
     int id = em.rendering.typeID[i];
-
     auto nameIt = IdToName.find(id);
-    if (nameIt == IdToName.end()) {
-        TraceLog(LOG_WARNING, "BEHAVE: Entity index %zu has unknown ID %d", i,
-                 id);
+    if (nameIt == IdToName.end())
         return;
-    }
 
     auto cfgIt = em.ConfigMap.find(nameIt->second);
     if (cfgIt == em.ConfigMap.end())
         return;
 
-    auto &v = em.vars[i].values;
-    const std::vector<std::string> &behaviors = cfgIt->second.behaviors;
+    // Reference to this entity's specific configuration
+    const EntityConfig &cfg = cfgIt->second;
 
-    for (const std::string &behavior : behaviors) {
-        // Tile Behaves
+    // 2. Access component values (EntityBehaves structs)
+    auto &v = em.vars[i];
+    auto &b = em.behs[i];
+
+    for (auto const &[behavior, behaviorValue] : cfg.customBehs) {
+
+        // --- Tile Behaviors ---
         if (behavior == "one_way") {
             if (em.rendering.varID[i] == 0) {
             } else if (em.rendering.varID[i] == 1) {
@@ -30,7 +32,7 @@ void BehaveSystem(EntityManager &em, size_t i) {
             }
         }
 
-        // Enenmy Behaves
+        // --- Enemy Behaviors ---
         if (behavior == "flip_on_wall") {
             if (em.physics.walled[i]) {
                 em.physics.vel[i].x *= -1.0f;
@@ -40,13 +42,11 @@ void BehaveSystem(EntityManager &em, size_t i) {
 
         if (behavior == "jump_on_ground") {
             if (em.physics.grounded[i]) {
-                if (v.count("JUMP_VAR")) {
-                    TraceLog(LOG_INFO, "Entity %zu jumping with velocity: %.2f",
-                             i, v.at("JUMP_VAR"));
-                    em.physics.vel[i].y = v.at("JUMP_VAR");
-                } else {
-                    TraceLog(LOG_WARNING, "Entity %zu does not have JUMP_VAR!",
-                             i);
+                if (v.has("JUMP_VAR")) {
+                    float jumpVel = v.get("JUMP_VAR");
+                    em.physics.vel[i].y = jumpVel;
+                } else if (cfg.customVars.count("JUMP_VAR")) {
+                    em.physics.vel[i].y = cfg.customVars.at("JUMP_VAR");
                 }
             }
         }

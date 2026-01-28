@@ -107,7 +107,6 @@ struct EntityConfig {
     bool canCollide = true;
 
     int tID = 0, vID = 0;
-    std::vector<std::string> behaviors;
 
     Color color = BLACK;
     float scale = 1.0f;
@@ -119,38 +118,39 @@ struct EntityConfig {
     float maxHealth = 100.0f;
 
     std::map<std::string, float> customVars;
+    std::map<std::string, float> customBehs;
+
     void from_json(const nlohmann::json &j) {
-    // 1. Manual Vector2 Parsing (size)
-        if (j.contains("size") && j["size"].is_array() && j["size"].size() >= 2) {
+        // 1. Manual Vector2 Parsing (size)
+        if (j.contains("size") && j["size"].is_array() &&
+            j["size"].size() >= 2) {
             size.x = j["size"][0].get<float>();
             size.y = j["size"][1].get<float>();
         }
-    
+
         // 2. Manual Color Parsing (color)
-        if (j.contains("color") && j["color"].is_array() && j["color"].size() >= 4) {
+        if (j.contains("color") && j["color"].is_array() &&
+            j["color"].size() >= 4) {
             color.r = j["color"][0].get<unsigned char>();
             color.g = j["color"][1].get<unsigned char>();
             color.b = j["color"][2].get<unsigned char>();
             color.a = j["color"][3].get<unsigned char>();
         }
-    
+
         // 3. Robust Number Parsing (gravity)
         if (j.contains("gravity") && j["gravity"].is_number()) {
             gravity = j["gravity"].get<float>();
         }
-    
+
         // 4. Basic types with defaults
         canCollide = j.value("collide", true);
         tID = j.value("tID", 0);
         vID = j.value("vID", 0);
         health = j.value("health", 100.0f);
-        maxHealth = j.value("maxHealth", health); // Match max to current if not specified
-    
-        // 5. Arrays and Maps
-        if (j.contains("behaviors") && j["behaviors"].is_array()) {
-            behaviors = j["behaviors"].get<std::vector<std::string>>();
-        }
-    
+        maxHealth = j.value("maxHealth",
+                            health); // Match max to current if not specified
+
+        // Variables
         if (j.contains("customVars") && j["customVars"].is_object()) {
             for (auto &[key, value] : j["customVars"].items()) {
                 if (value.is_number()) {
@@ -158,10 +158,34 @@ struct EntityConfig {
                 }
             }
         }
+
+        // Behaviors
+        if (j.contains("behaviors") && j["behaviors"].is_object()) {
+            for (auto &[key, value] : j["behaviors"].items()) {
+                if (value.is_number()) {
+                    customBehs[key] = value.get<float>();
+                }
+            }
+        }
     }
 };
 
 struct EntityVars {
+    std::unordered_map<std::string, float> values;
+
+    bool has(const std::string &name) {
+        return values.find(name) != values.end();
+    }
+
+    float get(const std::string &key, float defaultVal = 0.0f) {
+        auto it = values.find(key);
+        return (it != values.end()) ? it->second : defaultVal;
+    }
+
+    void set(const std::string &key, float value) { values[key] = value; }
+};
+
+struct EntityBehaves {
     std::unordered_map<std::string, float> values;
 
     bool has(const std::string &name) {
