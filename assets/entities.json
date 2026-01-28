@@ -117,11 +117,11 @@
       255
     ],
     "texture": "assets/textures/main.png",
-    "behaviors": [
-      "enemy",
-      "flip_on_wall",
-      "jump_on_wall"
-    ],
+    "behaviors": {
+      "enemy": 1.0,
+      "flip_on_wall": 1.0,
+      "jump_on_wall": 1.0
+    },
     "customVars": {
       "ACEL": 25.0,
       "MAX_SPEED": 750.0
@@ -143,11 +143,11 @@
       255
     ],
     "texture": "assets/textures/main.png",
-    "behaviors": [
-      "enemy",
-      "flip_on_wall",
-      "jump_on_ground"
-    ],
+    "behaviors": {
+      "enemy": 1.0,
+      "flip_on_wall": 1.0,
+      "jump_on_ground": 1.0
+    },
     "customVars": {
       "ACEL": 25.0,
       "MAX_SPEED": 250.0,
@@ -170,11 +170,11 @@
       255
     ],
     "texture": "assets/textures/main.png",
-    "behaviors": [
-      "enemy",
-      "flip_on_wall",
-      "jump_on_wall"
-    ],
+    "behaviors": {
+      "enemy": 1.0,
+      "flip_on_wall": 1.0,
+      "jump_on_wall": 1.0
+    },
     "customVars": {
       "ACEL": 25.0,
       "MAX_SPEED": 250.0,
@@ -196,9 +196,9 @@
       255
     ],
     "texture": "assets/textures/main.png",
-    "behaviors": [
-      "tile"
-    ]
+    "behaviors": {
+      "tile": 1.0
+    }
   },
   "TILE_ONE_WAY_UP": {
     "tID": 1501,
@@ -219,10 +219,10 @@
     "customVars": {
       "MAX_SPEED": 500.0
     },
-    "behaviors": [
-      "tile",
-      "on_way"
-    ]
+    "behaviors": {
+      "tile": 1.0,
+      "on_way": 1.0
+    }
   },
   "HITBOX": {
     "size": [

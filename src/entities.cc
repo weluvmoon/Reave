@@ -179,13 +179,12 @@ void EntityManager::LoadConfigs(const std::string &path) {
 
         // 3. Process every object in the JSON
         for (auto &[name, configData] : data.items()) {
-            // Skip the registry key itself or non-config metadata
             if (name == "entity_types" || !configData.is_object())
                 continue;
 
             EntityConfig cfg;
             cfg.from_json(
-                configData); // Will pick up "tID" from inside the CORE2 block
+                configData); // This already fills customVars and customBehs
 
             if (EntityRegistry.find(name) == EntityRegistry.end()) {
                 EntityRegistry[name] = cfg.tID;
@@ -195,6 +194,8 @@ void EntityManager::LoadConfigs(const std::string &path) {
             } else {
                 cfg.tID = EntityRegistry[name];
             }
+
+            ConfigMap[name] = cfg;
 
             // Parse customVars safely
             if (configData.contains("customVars") &&
@@ -221,7 +222,7 @@ void EntityManager::LoadConfigs(const std::string &path) {
         LoadTypes();
 
         for (auto const &[name, cfg] : ConfigMap) {
-            TraceLog(LOG_INFO, "Final Config: [%s] ID: %d Gravity: %.2f",
+            TraceLog(LOG_INFO, "Loaded: [%s] ID: %d Gravity: %.2f",
                      name.c_str(), cfg.tID, cfg.gravity);
         }
 
@@ -412,161 +413,121 @@ void EntityManager::SyncRect(EntityManager &em, size_t i) {
 }
 
 bool EntityManager::SaveLevel(const std::string &filename) {
-    std::ofstream outFile(filename, std::ios::binary);
-    if (!outFile)
-        return false;
-
+    nlohmann::json save;
+    nlohmann::json entitiesArray = nlohmann::json::array();
     size_t count = physics.pos.size();
-    outFile.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
 
     for (size_t i = 0; i < count; ++i) {
-        // Save only essential "Definition" data
-        outFile.write(reinterpret_cast<const char *>(&rendering.typeID[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&rendering.varID[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&physics.pos[i]),
-                      sizeof(Vector2));
-        outFile.write(reinterpret_cast<const char *>(&physics.siz[i]),
-                      sizeof(Vector2));
-        outFile.write(reinterpret_cast<const char *>(&physics.gravity[i]),
-                      sizeof(float));
+        nlohmann::json entity;
 
-        outFile.write(reinterpret_cast<const char *>(&rendering.col[i]),
-                      sizeof(Color));
-        outFile.write(reinterpret_cast<const char *>(&rendering.frameNum[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&rendering.rowIndex[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&rendering.frameMin[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&rendering.frameMax[i]),
-                      sizeof(int));
-        outFile.write(reinterpret_cast<const char *>(&rendering.frameSpd[i]),
-                      sizeof(float));
+        // Basic Data (using explicit keys)
+        entity["typeID"] = rendering.typeID[i];
+        entity["varID"] = rendering.varID[i];
+        entity["gravity"] = physics.gravity[i];
+        entity["health"] = stats.health[i];
+        entity["maxHealth"] = stats.maxHealth[i];
 
-        outFile.write(reinterpret_cast<const char *>(&stats.health[i]),
-                      sizeof(float));
-        outFile.write(reinterpret_cast<const char *>(&stats.maxHealth[i]),
-                      sizeof(float));
+        // Raylib Types saved as JSON arrays
+        entity["pos"] = {physics.pos[i].x, physics.pos[i].y};
+        entity["size"] = {physics.siz[i].x, physics.siz[i].y};
+        entity["color"] = {rendering.col[i].r, rendering.col[i].g,
+                           rendering.col[i].b, rendering.col[i].a};
 
-        size_t varCount = vars[i].values.size();
-        outFile.write((char *)&varCount, sizeof(size_t));
-
-        for (auto const &[key, val] : vars[i].values) {
-            size_t keyLen = key.size();
-            outFile.write((char *)&keyLen, sizeof(size_t));
-            outFile.write(key.data(), keyLen);
-            outFile.write((char *)&val, sizeof(float));
+        // Maps (EntityBehaves) - nlohmann handles maps automatically!
+        // These will save only the data that actually exists in the map
+        if (!vars[i].values.empty()) {
+            entity["vars"] = vars[i].values;
+        }
+        if (!behs[i].values.empty()) {
+            entity["behs"] = behs[i].values;
         }
 
-        size_t behCount = behs[i].values.size();
-        outFile.write((char *)&behCount, sizeof(size_t));
-
-        for (auto const &[key, val] : behs[i].values) {
-            size_t keyLen = key.size();
-            outFile.write((char *)&keyLen, sizeof(size_t));
-            outFile.write(key.data(), keyLen);
-            outFile.write((char *)&val, sizeof(float));
-        }
+        entitiesArray.push_back(entity);
     }
 
-    outFile.close();
-    TraceLog(LOG_INFO, "FILEIO: Level saved successfully. Saved %zu entities.",
-             count);
+    save["entities"] = entitiesArray;
+
+    std::ofstream outFile(filename);
+    if (!outFile.is_open())
+        return false;
+
+    outFile << save.dump(4); // Use 4-space indentation for readability
+    TraceLog(LOG_INFO,
+             "FILEIO: Level saved successfully to %s. Saved %zu entities.",
+             filename.c_str(), count);
     return true;
 }
 
 bool EntityManager::LoadLevel(const std::string &filename) {
-    std::ifstream inFile(filename, std::ios::binary);
-    if (!inFile)
+    std::ifstream inFile(filename);
+    if (!inFile.is_open())
         return false;
 
-    ClearAll();
-
-    size_t count;
-    inFile.read(reinterpret_cast<char *>(&count), sizeof(size_t));
-
-    // Pre-reserve to avoid multiple reallocations
-    Reserve(count);
-
-    for (size_t i = 0; i < count; ++i) {
-        // Temporary variables to hold loaded data
-        int tID, vID;
-        Vector2 pos, siz;
-        float grav, hp, maxHp;
-        Color col;
-        int frameNum, rowIndex, frameMax, frameMin;
-        float frameSpd;
-
-        // Read in the EXACT same order as SaveLevel
-        inFile.read(reinterpret_cast<char *>(&tID), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&vID), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&pos), sizeof(Vector2));
-        inFile.read(reinterpret_cast<char *>(&siz), sizeof(Vector2));
-        inFile.read(reinterpret_cast<char *>(&grav), sizeof(float));
-
-        inFile.read(reinterpret_cast<char *>(&col), sizeof(Color));
-        inFile.read(reinterpret_cast<char *>(&frameNum), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&rowIndex), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&frameMin), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&frameMax), sizeof(int));
-        inFile.read(reinterpret_cast<char *>(&frameSpd), sizeof(float));
-
-        inFile.read(reinterpret_cast<char *>(&hp), sizeof(float));
-        inFile.read(reinterpret_cast<char *>(&maxHp), sizeof(float));
-
-        size_t index = AddEntity(tID, vID, pos, siz, grav, col);
-
-        size_t varCount = 0;
-        if (!inFile.read((char *)&varCount, sizeof(size_t)))
-            break;
-
-        for (size_t v = 0; v < varCount; ++v) {
-            size_t keyLen = 0;
-            inFile.read((char *)&keyLen, sizeof(size_t));
-
-            // SAFETY CHECK: Prevent the 4.8 exabyte crash
-            if (keyLen > 1024) {
-                TraceLog(LOG_ERROR,
-                         "Invalid Save File: String length too long!");
-                return false;
-            }
-
-            std::string key(keyLen, ' ');
-            inFile.read(&key[0], keyLen); // Read into string buffer
-
-            float val = 0;
-            inFile.read((char *)&val, sizeof(float));
-            vars[index].values[key] = val;
-        }
-
-        // Behaviors
-        size_t behCount = 0;
-        if (!inFile.read((char *)&behCount, sizeof(size_t)))
-            break;
-
-        for (size_t v = 0; v < behCount; ++v) {
-            size_t keyLen = 0;
-            inFile.read((char *)&keyLen, sizeof(size_t));
-
-            // SAFETY CHECK: Prevent the 4.8 exabyte crash
-            if (keyLen > 1024) {
-                TraceLog(LOG_ERROR,
-                         "Invalid Save File: String length too long!");
-                return false;
-            }
-
-            std::string key(keyLen, ' ');
-            inFile.read(&key[0], keyLen); // Read into string buffer
-
-            float val = 0;
-            inFile.read((char *)&val, sizeof(float));
-            behs[index].values[key] = val;
-        }
+    nlohmann::json save;
+    try {
+        inFile >> save;
+    } catch (const nlohmann::json::parse_error &e) {
+        TraceLog(LOG_ERROR, "JSON PARSE ERROR in %s: %s", filename.c_str(),
+                 e.what());
+        return false;
     }
 
-    inFile.close();
+    ClearAll(); // Wipe current state
+
+    // Iterate safely through the "entities" array
+    for (auto &entityJson : save["entities"]) {
+        // 1. Extract IDs and basic numbers
+        int tID = entityJson.value("typeID", 0);
+        int vID = entityJson.value("varID", 0);
+        float grav = entityJson.value("gravity", 20.0f);
+        float hp = entityJson.value("health", 100.0f);
+        float maxHp =
+            entityJson.value("maxHealth", hp); // Default max to current hp
+
+        // 2. Extract Raylib Types (safely accessing array indices)
+        Vector2 pos = {0, 0};
+        auto p = entityJson.value("pos", std::vector<float>{0.0f, 0.0f});
+        if (p.size() >= 2) {
+            pos.x = p[0];
+            pos.y = p[1];
+        }
+
+        Vector2 siz = {32, 32};
+        auto s = entityJson.value("size", std::vector<float>{32.0f, 32.0f});
+        if (s.size() >= 2) {
+            siz.x = s[0];
+            siz.y = s[1];
+        }
+
+        Color col = WHITE;
+        auto c =
+            entityJson.value("color", std::vector<int>{255, 255, 255, 255});
+        if (c.size() >= 4) {
+            col.r = c[0];
+            col.g = c[1];
+            col.b = c[2];
+            col.a = c[3];
+        }
+
+        // 3. Re-create the entity base
+        size_t index = AddEntity(tID, vID, pos, siz, grav, col);
+
+        // 4. Restore Stats & Maps (uses .get<> to map JSON object back to
+        // std::unordered_map)
+        stats.health[index] = hp;
+        stats.maxHealth[index] = maxHp;
+
+        if (entityJson.contains("vars"))
+            vars[index].values =
+                entityJson["vars"]
+                    .get<std::unordered_map<std::string, float>>();
+
+        if (entityJson.contains("behs"))
+            behs[index].values =
+                entityJson["behs"]
+                    .get<std::unordered_map<std::string, float>>();
+    }
+
     TraceLog(LOG_INFO, "FILEIO: Level [%s] loaded successfully.",
              filename.c_str());
     return true;

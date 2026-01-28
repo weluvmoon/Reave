@@ -161,10 +161,9 @@ struct EntityConfig {
 
         // Behaviors
         if (j.contains("behaviors") && j["behaviors"].is_object()) {
-            for (auto &[key, value] : j["behaviors"].items()) {
-                if (value.is_number()) {
-                    customBehs[key] = value.get<float>();
-                }
+            for (auto &[key, val] : j["behaviors"].items()) {
+                if (val.is_number())
+                    customBehs[key] = val.get<float>();
             }
         }
     }
