@@ -59,6 +59,8 @@ void CharacterSystem(EntityManager &em, size_t i) {
 void CharacterMovement(EntityManager &em, size_t i) {
     auto &v = em.vars[i].values;
     float dt = GetFrameTime();
+    float &velX = em.physics.vel[i].x;
+    float &velY = em.physics.vel[i].y;
 
     // Standard input and gravity logic...
     inputDirection = {0, 0};
@@ -85,11 +87,16 @@ void CharacterMovement(EntityManager &em, size_t i) {
         em.physics.gravity[i] = 0; // Freeze gravity during dash
     }
 
+    // 2. Wall Slide Logic
+    bool isWalled = em.physics.walled[i];
+    if (isWalled && !em.physics.grounded[i] && velY > 0) {
+        velY *= 0.7f; // Friction: slows down the fall
+    }
+
     v["LOCK_TIME"] -= dt;
 
     // Horizontal Movement (Skipped if dashing for "Locked" dash feel)
     if (v["LOCK_TIME"] <= 0) {
-        float &velX = em.physics.vel[i].x;
         if (inputDirection.x != 0) {
             float projectedSpeed = velX * inputDirection.x;
             int sgnX = (velX > 0) - (velX < 0);
@@ -118,65 +125,64 @@ void CharacterMovement(EntityManager &em, size_t i) {
 void CharacterJump(EntityManager &em, size_t i) {
     auto &v = em.vars[i].values;
     float dt = GetFrameTime();
+    float &velX = em.physics.vel[i].x;
+    float &velY = em.physics.vel[i].y;
 
+    // Update Timers
     if (em.physics.grounded[i]) {
         v["COYOTE_TIME"] = v["COYOTE_MAX"];
-
         v["HAS_WALL_JUMPED"] = false;
     } else {
-        v["COYOTE_TIME"] -= dt; // Counts down when in the air
+        v["COYOTE_TIME"] -= dt;
     }
 
-    if (em.physics.walled[i]) {
-        v["CAN_WALL_JUMP"] = true;
-    } else {
-        v["CAN_WALL_JUMP"] = false;
-    }
-
-    // --- JUMP BUFFER LOGIC ---
-    if (IsKeyPressed(KEY_JUMP)) {
+    if (IsKeyPressed(KEY_JUMP))
         v["JUMP_BUFFER"] = v["JUMP_BUFFER_MAX"];
-    } else {
+    else
         v["JUMP_BUFFER"] -= dt;
-    }
 
-    // --- Standard Jump (with Coyote and Buffer) ---
+    //  Standard Jump
     if (v["JUMP_BUFFER"] > 0 && v["COYOTE_TIME"] > 0) {
-        em.physics.vel[i].y = v["JUMP_VAR"];
+        velY = v["JUMP_VAR"];
         v["COYOTE_TIME"] = 0;
         v["JUMP_BUFFER"] = 0;
-    } else if (IsKeyReleased(KEY_JUMP) &&
-               em.physics.vel[i].y <= v["JUMP_VAR"] / 5.0f &&
-               v["CAN_JUMP"] < 0.5f) {
-        em.physics.vel[i].y = v["JUMP_VAR"] / 5.0f;
     }
 
-    // --- Wall Jump (Directional Inference) ---
-    if (IsKeyPressed(KEY_JUMP) && v["CAN_WALL_JUMP"] &&
-        !em.physics.grounded[i]) {
+    // Trigger Jump
+    if (v["JUMP_BUFFER"] > 0 &&
+        (v["COYOTE_TIME"] > 0 || em.physics.grounded[i])) {
 
-        float pushDir = (inputDirection.x != 0) ? -inputDirection.x : 0;
-        if (pushDir == 0) {
-            pushDir = (em.physics.vel[i].x > 0) ? -1.0f : 1.0f;
+        // --- SUPER JUMP LOGIC ---
+        if (v["DASH_DURATION"] > 0) {
+            // Preserve horizontal dash speed but allow vertical jump
+            velY = v["JUMP_VAR"];
+            velX *= 1.2f;           // Optional: boost speed even further
+            v["DASH_DURATION"] = 0; // End dash early to restore gravity
+            TraceLog(LOG_INFO, "SUPER JUMP! Velocity: %.2f", velX);
+        } else {
+            // Normal Jump
+            velY = v["JUMP_VAR"];
         }
 
-        em.physics.vel[i].x = pushDir * std::abs(v["JUMP_VAR"]);
-        em.physics.vel[i].y = v["JUMP_VAR"];
+        v["COYOTE_TIME"] = 0;
+        v["JUMP_BUFFER"] = 0;
+    }
+
+    // IMPROVED WALL JUMP
+    if (v["JUMP_BUFFER"] > 0 && em.physics.walled[i] &&
+        !em.physics.grounded[i]) {
+        float wallSide = (velX > 0 || inputDirection.x > 0) ? 1.0f : -1.0f;
+
+        velX = -wallSide * std::abs(v["MAX_SPEED"] * 1.5f);
+        velY = v["JUMP_VAR"] * 0.9f;
 
         v["JUMP_BUFFER"] = 0;
+        v["LOCK_TIME"] = 0.2f;
         v["HAS_WALL_JUMPED"] = true;
+    }
 
-        v["LOCK_TIME"] = 0.01f;
-    } else if (IsKeyReleased(KEY_JUMP) && v["CAN_WALL_JUMP"] &&
-               !v["HAS_WALL_JUMPED"]) {
-        em.physics.vel[i].x = (v["JUMP_VAR"] * 1.0f) * inputDirection.x;
-        em.physics.vel[i].y = v["JUMP_VAR"] * 1.3f;
-
-        v["JUMP_BUFFER"] = 0;
-        v["CAN_WALL_JUMP"] = false;
-        v["HAS_WALL_JUMPED"] = true;
-
-        v["LOCK_TIME"] = 0.01f;
+    if (IsKeyReleased(KEY_JUMP) && velY < 0) {
+        velY *= 0.5f;
     }
 }
 
@@ -193,16 +199,16 @@ void CharacterDash(EntityManager &em, size_t i) {
 
     if (IsKeyPressed(KEY_DASH) && v["CAN_DASH"]) {
         Vector2 dashDir = inputDirection;
+
         if (Vector2Length(dashDir) == 0)
-            dashDir.x = 1.0f;
+            dashDir.x = (em.physics.vel[i].x >= 0) ? 1.0f : -1.0f;
 
         em.physics.vel[i].x = dashDir.x * v["DASH_VAR"];
         em.physics.vel[i].y = dashDir.y * v["DASH_VAR"];
 
         v["CAN_DASH"] = false;
         v["HAS_DASHED"] = true;
-
-        v["LOCK_TIME"] = 0.15f;
         v["DASH_DURATION"] = 0.15f;
+        v["LOCK_TIME"] = 0.15f;
     }
 }
