@@ -156,7 +156,7 @@ void CharacterJump(EntityManager &em, size_t i) {
         if (v["DASH_DURATION"] > 0) {
             // Preserve horizontal dash speed but allow vertical jump
             velY = v["JUMP_VAR"];
-            velX *= 1.2f;           // Optional: boost speed even further
+            velX *= 1.5f;           // Optional: boost speed even further
             v["DASH_DURATION"] = 0; // End dash early to restore gravity
             TraceLog(LOG_INFO, "SUPER JUMP! Velocity: %.2f", velX);
         } else {
