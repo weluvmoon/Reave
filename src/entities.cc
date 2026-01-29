@@ -114,6 +114,7 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
     rendering.varID.push_back(cfg.vID);
     rendering.typeID.push_back(cfg.tID);
     rendering.col.push_back(cfg.color);
+
     rendering.rotation.push_back(0.0f);
     rendering.scale.push_back(cfg.scale);
     rendering.frameNum.push_back(0);
