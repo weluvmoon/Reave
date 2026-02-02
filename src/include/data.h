@@ -215,6 +215,10 @@ struct EntityVars {
     void add(const std::string &key, float value) { values[key] += value; }
 
     void sub(const std::string &key, float value) { values[key] -= value; }
+
+    void mul(const std::string &key, float value) { values[key] *= value; }
+
+    void div(const std::string &key, float value) { values[key] /= value; }
 };
 
 struct EntityBehaves {

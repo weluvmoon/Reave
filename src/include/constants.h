@@ -35,11 +35,11 @@ enum KEYS {
     KEY_MOVE_LEFT = KEY_LEFT,
     KEY_MOVE_RIGHT = KEY_RIGHT,
 
-    KEY_JUMP = KEY_Z,
-    KEY_DASH = KEY_X,
-    KEY_TRICK_A = KEY_A,
-    KEY_TRICK_B = KEY_S,
-    KEY_TRICK_C = KEY_D
+    KEY_JUMP = KEY_A,
+    KEY_DASH = KEY_S,
+    KEY_TRICK_A = KEY_Q,
+    KEY_TRICK_B = KEY_W,
+    KEY_TRICK_C = KEY_E
 };
 
 const float GRID_SIZE = 32.0f;

@@ -3,6 +3,7 @@
 #include "include/data.h"
 #include "include/entities.h"
 #include <cmath>
+#include <cstdlib>
 #include <raylib.h>
 #include <raymath.h>
 
@@ -17,33 +18,33 @@ void CharacterSystem(EntityManager &em, size_t i) {
     auto &v = em.vars[i];
 
     if (!em.physics.initialized[i]) {
-        v.values["LOCK_TIME"] = 0.0f;
+        v.set("LOCK_TIME", 0.0f);
 
-        v.values["ACEL"] = 20.0f;
-        v.values["DCEL"] = 50.0f;
-        v.values["MAX_SPEED"] = 500.0f;
-        v.values["GRAV"] = 18.0f;
-        v.values["GRAV_A"] = 1.0f;
-        v.values["GRAV_N"] = 18.0f;
-        v.values["GRAV_M"] = 40.0f;
-        v.values["JUMP_VAR"] = -750.0f;
-        v.values["DASH_VAR"] = 750.0f;
+        v.set("ACEL", 20.0f);
+        v.set("DCEL", 50.0f);
+        v.set("MAX_SPEED", 500.0f);
+        v.set("GRAV", 18.0f);
+        v.set("GRAV_A", 1.0f);
+        v.set("GRAV_N", 18.0f);
+        v.set("GRAV_M", 40.0f);
+        v.set("JUMP_VAR", -750.0f);
+        v.set("DASH_VAR", 750.0f);
 
-        v.values["TRICK_TYPE"] = 0;
-        v.values["TRICK_METER"] = 100.0f;
+        v.set("TRICK_TYPE", 1);
+        v.set("TRICK_METER", 100.0f);
 
-        v.values["CAN_JUMP"] = false;
-        v.values["CAN_WALL_JUMP"] = false;
+        v.set("CAN_JUMP", false);
+        v.set("CAN_WALL_JUMP", false);
 
-        v.values["HAS_WALL_JUMPED"] = true;
-        v.values["HAS_DASHED"] = false;
+        v.set("HAS_WALL_JUMPED", true);
+        v.set("HAS_DASHED", false);
 
-        v.values["COYOTE_TIME"] = 0.0f;
-        v.values["COYOTE_MAX"] = 0.2f;
-        v.values["JUMP_BUFFER"] = 0.0f;
-        v.values["JUMP_BUFFER_MAX"] = 0.1f;
-        v.values["DASH_COOLDOWN"] = 0.0f;
-        v.values["DASH_DURATION"] = 0.0f;
+        v.set("COYOTE_TIME", 0.0f);
+        v.set("COYOTE_MAX", 0.2f);
+        v.set("JUMP_BUFFER", 0.0f);
+        v.set("JUMP_BUFFER_MAX", 0.1f);
+        v.set("DASH_COOLDOWN", 0.0f);
+        v.set("DASH_DURATION", 0.0f);
 
         em.rendering.col[i] = VIOLET;
         em.physics.gravity[i] = v.values["GRAV_N"];
@@ -62,7 +63,7 @@ void CharacterSystem(EntityManager &em, size_t i) {
 }
 
 void CharacterMovement(EntityManager &em, size_t i) {
-    auto &v = em.vars[i].values;
+    auto &v = em.vars[i];
     float dt = GetFrameTime();
     float &velX = em.physics.vel[i].x;
     float &velY = em.physics.vel[i].y;
@@ -81,12 +82,12 @@ void CharacterMovement(EntityManager &em, size_t i) {
         inputDirection = Vector2Normalize(inputDirection);
 
     // Apply gravity ONLY if not dashing
-    if (v["DASH_DURATION"] <= 0) {
-        em.physics.gravity[i] = v["GRAV"];
+    if (v.get("DASH_DURATION") <= 0) {
+        em.physics.gravity[i] = v.get("GRAV");
         if (em.physics.grounded[i])
-            v["GRAV"] = v["GRAV_N"];
-        else if (v["GRAV"] <= v["GRAV_M"])
-            v["GRAV"] += v["GRAV_A"];
+            v.set("GRAV", v.get("GRAV_N"));
+        else if (v.get("GRAV") <= v.get("GRAV_M"))
+            v.add("GRAV", v.get("GRAV_A"));
     } else {
         em.physics.gravity[i] = 0;
     }
@@ -97,22 +98,22 @@ void CharacterMovement(EntityManager &em, size_t i) {
         velY *= 0.7f;
     }
 
-    v["LOCK_TIME"] -= dt;
+    v.sub("LOCK_TIME", dt);
 
     // Horizontal Movement (Skipped if dashing for "Locked" dash feel)
-    if (v["LOCK_TIME"] <= 0) {
+    if (v.get("LOCK_TIME") <= 0) {
         if (inputDirection.x != 0) {
             float projectedSpeed = velX * inputDirection.x;
             int sgnX = (velX > 0) - (velX < 0);
 
             float currentAccel = (sgnX == (int)inputDirection.x)
-                                     ? v["ACEL"]
-                                     : (v["ACEL"] * 5.0f);
+                                     ? v.get("ACEL")
+                                     : (v.values["ACEL"] * 5.0f);
 
-            if (projectedSpeed < v["MAX_SPEED"]) {
+            if (projectedSpeed < v.get("MAX_SPEED")) {
                 velX += currentAccel * inputDirection.x;
-                if (velX * inputDirection.x > v["MAX_SPEED"]) {
-                    velX = v["MAX_SPEED"] * inputDirection.x;
+                if (velX * inputDirection.x > v.get("MAX_SPEED")) {
+                    velX = v.get("MAX_SPEED") * inputDirection.x;
                 }
             }
         } else {
@@ -225,6 +226,10 @@ void CharacterTricks(EntityManager &em, size_t i) {
     float &velX = em.physics.vel[i].x;
     float &velY = em.physics.vel[i].y;
 
+    v.add("TRICK_METER", dt);
+
+    DrawText("Hello", em.physics.pos[i].x, em.physics.pos[i].y, 12, BLACK);
+
     if (IsKeyPressed(KEY_TRICK_A) && v.get("TRICK_METER") > 0.0f) {
         // Trick Type 0
         if (v.get("TRICK_TYPE") == 0) {
@@ -237,8 +242,7 @@ void CharacterTricks(EntityManager &em, size_t i) {
 
         // Trick Type 1
         if (v.get("TRICK_TYPE") == 1) {
-            velX *= 2.0f;
-            velY = v.get("JUMP_VAR");
+            velY = v.get("JUMP_VAR") * std::abs(velX) / 120.0f;
             v.set("COYOTE_TIME", 0.0f);
             v.set("JUMP_BUFFER", 0.0f);
 

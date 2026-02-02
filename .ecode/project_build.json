@@ -1,0 +1,39 @@
+{
+  "Raylib": {
+    "build": [
+      {
+        "args": "",
+        "command": "make",
+        "working_dir": ""
+      }
+    ],
+    "build_types": [],
+    "clean": [
+      {
+        "args": "clean",
+        "command": "make",
+        "working_dir": ""
+      }
+    ],
+    "config": {
+      "clear_sys_env": false,
+      "strip_ansi_codes": false
+    },
+    "os": [],
+    "output_parser": {
+      "config": {
+        "relative_file_paths": true
+      }
+    },
+    "run": [
+      {
+        "args": "run",
+        "command": "make",
+        "name": "Game",
+        "run_in_terminal": true,
+        "use_statusbar_terminal": true,
+        "working_dir": ""
+      }
+    ]
+  }
+}
