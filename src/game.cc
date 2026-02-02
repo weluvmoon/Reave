@@ -79,7 +79,7 @@ void Game::UpdateState(float dt) {
         camera.target = cameraTarg;
 
         if (IsKeyPressed(KEY_SAVE)) {
-            if (em.SaveLevel("bin/content/level/level-1")) {
+            if (em.SaveLevel("bin/content/level/level-1.json")) {
                 statusMessage = "Level Saved!";
             } else {
                 statusMessage = "Save Failed!";
@@ -87,7 +87,7 @@ void Game::UpdateState(float dt) {
             messageTimer = 3.0f; // Show for 3 seconds
             cS.ResetTileGrid();
         } else if (IsKeyPressed(KEY_LOAD)) {
-            if (em.LoadLevel("bin/content/level/level-1")) {
+            if (em.LoadLevel("bin/content/level/level-1.json")) {
                 statusMessage = "Level Loaded!";
             } else {
                 statusMessage = "Load Failed (File Not Found)!";

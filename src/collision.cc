@@ -170,8 +170,10 @@ CollisionSystem::CheckCollisionsInternal(EntityManager &em, size_t i,
     return {false, 0, {0, 0}, {0, 0}};
 }
 
-CollisionResult CollisionSystem::CheckCollisions(EntityManager &em, size_t i) {
-    return CheckCollisionsInternal(em, i, em.physics.rect[i]);
+CollisionResult CollisionSystem::CheckCollisions(EntityManager &em,
+                                                 Rectangle &sensorRect,
+                                                 size_t i) {
+    return CheckCollisionsInternal(em, i, sensorRect);
 }
 
 CollisionResult CollisionSystem::CheckCollisionsX(EntityManager &em, size_t i) {

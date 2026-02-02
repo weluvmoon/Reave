@@ -91,6 +91,8 @@ struct RenderComponent {
     std::vector<Texture2D> texture;
     std::vector<float> rotation;
     std::vector<float> scale;
+
+    std::vector<bool> texDraw;
     std::vector<int> frameNum, rowIndex;
     std::vector<int> frameMin, frameMax;
     std::vector<float> frameSpd;
@@ -106,13 +108,17 @@ struct EntityConfig {
     float gravity = 20.0f;
     bool canCollide = true;
 
-    int tID = 0, vID = 0;
-
+    int vID = 0.0f;
+    int tID = 0.0f;
     Color color = BLACK;
+    Texture2D texture;
+    float rotation = 0.0f;
     float scale = 1.0f;
+
+    bool texDraw = false;
+    int frameNum = 0.0f, rowIndex = 0.0f;
+    int frameMin = 0.0f, frameMax = 0.0f;
     float frameSpeed = 1.0f;
-    int frameMin = 0;
-    int frameMax = 0;
 
     float health = 100.0f;
     float maxHealth = 100.0f;
@@ -121,14 +127,23 @@ struct EntityConfig {
     std::map<std::string, float> customBehs;
 
     void from_json(const nlohmann::json &j) {
-        // 1. Manual Vector2 Parsing (size)
+        // Physics
         if (j.contains("size") && j["size"].is_array() &&
             j["size"].size() >= 2) {
             size.x = j["size"][0].get<float>();
             size.y = j["size"][1].get<float>();
         }
 
-        // 2. Manual Color Parsing (color)
+        canCollide = j.value("collide", true);
+
+        if (j.contains("gravity") && j["gravity"].is_number()) {
+            gravity = j["gravity"].get<float>();
+        }
+
+        // Rendering
+        tID = j.value("tID", 0);
+        vID = j.value("vID", 0);
+
         if (j.contains("color") && j["color"].is_array() &&
             j["color"].size() >= 4) {
             color.r = j["color"][0].get<unsigned char>();
@@ -137,15 +152,29 @@ struct EntityConfig {
             color.a = j["color"][3].get<unsigned char>();
         }
 
-        // 3. Robust Number Parsing (gravity)
-        if (j.contains("gravity") && j["gravity"].is_number()) {
-            gravity = j["gravity"].get<float>();
+        texDraw = j.value("texDraw", false);
+        if (j.contains("frameNum") && j["frameNum"].is_number()) {
+            frameNum = j["frameNum"].get<int>();
+        }
+        if (j.contains("rowIndex") && j["rowIndex"].is_number()) {
+            rowIndex = j["rowIndex"].get<int>();
+        }
+        if (j.contains("frameMin") && j["frameMin"].is_number()) {
+            frameMin = j["frameMin"].get<int>();
+        }
+        if (j.contains("frameMax") && j["frameMax"].is_number()) {
+            frameMax = j["frameMax"].get<int>();
         }
 
-        // 4. Basic types with defaults
-        canCollide = j.value("collide", true);
-        tID = j.value("tID", 0);
-        vID = j.value("vID", 0);
+        if (j.contains("frameSpeed") && j["frameSpeed"].is_number()) {
+            frameSpeed = j["frameSpeed"].get<float>();
+        }
+
+        if (j.contains("frameSpeed") && j["frameSpeed"].is_number()) {
+            frameSpeed = j["frameSpeed"].get<float>();
+        }
+
+        // Stats
         health = j.value("health", 100.0f);
         maxHealth = j.value("maxHealth",
                             health); // Match max to current if not specified
@@ -182,6 +211,10 @@ struct EntityVars {
     }
 
     void set(const std::string &key, float value) { values[key] = value; }
+
+    void add(const std::string &key, float value) { values[key] += value; }
+
+    void sub(const std::string &key, float value) { values[key] -= value; }
 };
 
 struct EntityBehaves {

@@ -102,7 +102,7 @@
     "texture": "assets/textures/main.png"
   },
   "WALKER": {
-    "vID": 1,
+    "vID": 1,z
     "size": [
       18.0,
       24.0
@@ -173,7 +173,8 @@
     "behaviors": {
       "enemy": 1.0,
       "flip_on_wall": 1.0,
-      "jump_on_wall": 1.0
+      "jump_on_wall": 1.0,
+      "chase_player": 1.0
     },
     "customVars": {
       "ACEL": 25.0,

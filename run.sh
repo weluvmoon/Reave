@@ -10,7 +10,7 @@ echo "--- Starting Build Process ---"
 # The '&&' operator means the next command will only run if 'make' exits with a 0 status (success).
 make && {
     echo "--- Build Successful! Starting Game ---"
-    alacritty -e gdb ./game
+    alacritty -e ./game
 }
 
 # The following line will only execute if 'make' failed (non-zero exit status)

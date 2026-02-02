@@ -34,6 +34,7 @@ void EntityManager::Reserve(size_t capacity) {
     rendering.typeID.reserve(capacity);
     rendering.rotation.reserve(capacity);
     rendering.scale.reserve(capacity);
+    rendering.texDraw.reserve(capacity);
     rendering.frameNum.reserve(capacity);
     rendering.rowIndex.reserve(capacity);
     rendering.frameSpd.reserve(capacity);
@@ -68,6 +69,7 @@ size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
     rendering.col.push_back(col);
     rendering.rotation.push_back(0.0f);
     rendering.scale.push_back(0.0f);
+    rendering.texDraw.push_back(false);
     rendering.frameNum.push_back(0);
     rendering.rowIndex.push_back(0);
     rendering.frameMin.push_back(0);
@@ -117,10 +119,11 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
 
     rendering.rotation.push_back(0.0f);
     rendering.scale.push_back(cfg.scale);
-    rendering.frameNum.push_back(0);
-    rendering.rowIndex.push_back(0);
-    rendering.frameMin.push_back(0);
-    rendering.frameMax.push_back(0);
+    rendering.texDraw.push_back(cfg.texDraw);
+    rendering.frameNum.push_back(cfg.frameNum);
+    rendering.rowIndex.push_back(cfg.rowIndex);
+    rendering.frameMin.push_back(cfg.frameMin);
+    rendering.frameMax.push_back(cfg.frameMax);
     rendering.frameSpd.push_back(cfg.frameSpeed);
 
     // --- STATS & VARS ---
@@ -313,6 +316,7 @@ void EntityManager::FastRemove(size_t index) {
         rendering.col[index] = rendering.col[last];
         rendering.rotation[index] = rendering.rotation[last];
         rendering.scale[index] = rendering.scale[last];
+        rendering.texDraw[index] = rendering.texDraw[last];
         rendering.frameNum[index] = rendering.frameNum[last];
         rendering.rowIndex[index] = rendering.rowIndex[last];
         rendering.frameSpd[index] = rendering.frameSpd[last];
@@ -346,6 +350,7 @@ void EntityManager::FastRemove(size_t index) {
     rendering.col.pop_back();
     rendering.rotation.pop_back();
     rendering.scale.pop_back();
+    rendering.texDraw.pop_back();
     rendering.frameNum.pop_back();
     rendering.rowIndex.pop_back();
     rendering.frameSpd.pop_back();
@@ -378,6 +383,7 @@ void EntityManager::ClearAll() {
     rendering.col.clear();
     rendering.rotation.clear();
     rendering.scale.clear();
+    rendering.texDraw.clear();
     rendering.frameNum.clear();
     rendering.rowIndex.clear();
     rendering.frameSpd.clear();
@@ -421,21 +427,20 @@ bool EntityManager::SaveLevel(const std::string &filename) {
     for (size_t i = 0; i < count; ++i) {
         nlohmann::json entity;
 
-        // Basic Data (using explicit keys)
-        entity["typeID"] = rendering.typeID[i];
-        entity["varID"] = rendering.varID[i];
-        entity["gravity"] = physics.gravity[i];
-        entity["health"] = stats.health[i];
-        entity["maxHealth"] = stats.maxHealth[i];
-
-        // Raylib Types saved as JSON arrays
         entity["pos"] = {physics.pos[i].x, physics.pos[i].y};
         entity["size"] = {physics.siz[i].x, physics.siz[i].y};
+
+        entity["gravity"] = physics.gravity[i];
+
+        entity["typeID"] = rendering.typeID[i];
+        entity["varID"] = rendering.varID[i];
+
         entity["color"] = {rendering.col[i].r, rendering.col[i].g,
                            rendering.col[i].b, rendering.col[i].a};
 
-        // Maps (EntityBehaves) - nlohmann handles maps automatically!
-        // These will save only the data that actually exists in the map
+        entity["health"] = stats.health[i];
+        entity["maxHealth"] = stats.maxHealth[i];
+
         if (!vars[i].values.empty()) {
             entity["vars"] = vars[i].values;
         }

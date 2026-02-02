@@ -29,7 +29,8 @@ class CollisionSystem {
     void ResolveAxis(EntityManager &em, size_t i, bool isXAxis);
     CollisionResult CheckCollisionsInternal(EntityManager &em, size_t i,
                                             const Rectangle &sensorRect);
-    CollisionResult CheckCollisions(EntityManager &em, size_t i);
+    CollisionResult CheckCollisions(EntityManager &em, Rectangle &sensorRect,
+                                    size_t i);
     CollisionResult CheckCollisionsX(EntityManager &em, size_t i);
     CollisionResult CheckCollisionsY(EntityManager &em, size_t i);
 

@@ -8,6 +8,8 @@
 
 Vector2 inputDirection{0, 0};
 
+enum TrickTypes { TRICK_DOUBLE_JUMP, TRICK_TRIPLE_JUMP, TRICK_COUNT };
+
 void CharacterSystem(EntityManager &em, size_t i) {
 
     if (em.rendering.typeID[i] != EntityRegistry["CHARACTER"])
@@ -27,15 +29,18 @@ void CharacterSystem(EntityManager &em, size_t i) {
         v.values["JUMP_VAR"] = -750.0f;
         v.values["DASH_VAR"] = 750.0f;
 
+        v.values["TRICK_TYPE"] = 0;
+        v.values["TRICK_METER"] = 100.0f;
+
         v.values["CAN_JUMP"] = false;
         v.values["CAN_WALL_JUMP"] = false;
 
         v.values["HAS_WALL_JUMPED"] = true;
         v.values["HAS_DASHED"] = false;
 
-        v.values["COYOTE_TIME"] = 0.0f; // Current timer
+        v.values["COYOTE_TIME"] = 0.0f;
         v.values["COYOTE_MAX"] = 0.2f;
-        v.values["JUMP_BUFFER"] = 0.0f; // Current timer
+        v.values["JUMP_BUFFER"] = 0.0f;
         v.values["JUMP_BUFFER_MAX"] = 0.1f;
         v.values["DASH_COOLDOWN"] = 0.0f;
         v.values["DASH_DURATION"] = 0.0f;
@@ -45,7 +50,7 @@ void CharacterSystem(EntityManager &em, size_t i) {
         em.physics.initialized[i] = true;
     }
 
-    CollisionResult col = cS.CheckCollisions(em, i);
+    CollisionResult col = cS.CheckCollisions(em, em.physics.rect[i], i);
 
     if (col.hit) {
         if (col.typeID == EntityTys::TYTILE) {
@@ -72,7 +77,6 @@ void CharacterMovement(EntityManager &em, size_t i) {
         inputDirection.y = -1.0f;
     if (IsKeyDown(KEY_MOVE_DOWN))
         inputDirection.y = 1.0f;
-
     if (Vector2Length(inputDirection) > 0)
         inputDirection = Vector2Normalize(inputDirection);
 
@@ -84,13 +88,13 @@ void CharacterMovement(EntityManager &em, size_t i) {
         else if (v["GRAV"] <= v["GRAV_M"])
             v["GRAV"] += v["GRAV_A"];
     } else {
-        em.physics.gravity[i] = 0; // Freeze gravity during dash
+        em.physics.gravity[i] = 0;
     }
 
     // 2. Wall Slide Logic
     bool isWalled = em.physics.walled[i];
     if (isWalled && !em.physics.grounded[i] && velY > 0) {
-        velY *= 0.7f; // Friction: slows down the fall
+        velY *= 0.7f;
     }
 
     v["LOCK_TIME"] -= dt;
@@ -120,6 +124,7 @@ void CharacterMovement(EntityManager &em, size_t i) {
 
     CharacterJump(em, i);
     CharacterDash(em, i);
+    CharacterTricks(em, i);
 }
 
 void CharacterJump(EntityManager &em, size_t i) {
@@ -156,9 +161,8 @@ void CharacterJump(EntityManager &em, size_t i) {
         if (v["DASH_DURATION"] > 0) {
             // Preserve horizontal dash speed but allow vertical jump
             velY = v["JUMP_VAR"];
-            velX *= 1.5f;           // Optional: boost speed even further
-            v["DASH_DURATION"] = 0; // End dash early to restore gravity
-            TraceLog(LOG_INFO, "SUPER JUMP! Velocity: %.2f", velX);
+            velX *= 1.5f;
+            v["DASH_DURATION"] = 0;
         } else {
             // Normal Jump
             velY = v["JUMP_VAR"];
@@ -177,7 +181,7 @@ void CharacterJump(EntityManager &em, size_t i) {
         velY = v["JUMP_VAR"] * 0.9f;
 
         v["JUMP_BUFFER"] = 0;
-        v["LOCK_TIME"] = 0.2f;
+        v["LOCK_TIME"] = 0.1f;
         v["HAS_WALL_JUMPED"] = true;
     }
 
@@ -189,6 +193,8 @@ void CharacterJump(EntityManager &em, size_t i) {
 void CharacterDash(EntityManager &em, size_t i) {
     auto &v = em.vars[i].values;
     float dt = GetFrameTime();
+    float &velX = em.physics.vel[i].x;
+    float &velY = em.physics.vel[i].y;
 
     if (em.physics.grounded[i]) {
         v["CAN_DASH"] = true;
@@ -203,12 +209,40 @@ void CharacterDash(EntityManager &em, size_t i) {
         if (Vector2Length(dashDir) == 0)
             dashDir.x = (em.physics.vel[i].x >= 0) ? 1.0f : -1.0f;
 
-        em.physics.vel[i].x = dashDir.x * v["DASH_VAR"];
-        em.physics.vel[i].y = dashDir.y * v["DASH_VAR"];
+        velX = dashDir.x * v["DASH_VAR"];
+        velY = dashDir.y * v["DASH_VAR"];
 
         v["CAN_DASH"] = false;
         v["HAS_DASHED"] = true;
         v["DASH_DURATION"] = 0.15f;
         v["LOCK_TIME"] = 0.15f;
+    }
+}
+
+void CharacterTricks(EntityManager &em, size_t i) {
+    auto &v = em.vars[i];
+    float dt = GetFrameTime();
+    float &velX = em.physics.vel[i].x;
+    float &velY = em.physics.vel[i].y;
+
+    if (IsKeyPressed(KEY_TRICK_A) && v.get("TRICK_METER") > 0.0f) {
+        // Trick Type 0
+        if (v.get("TRICK_TYPE") == 0) {
+            velY = v.get("JUMP_VAR");
+            v.set("COYOTE_TIME", 0.0f);
+            v.set("JUMP_BUFFER", 0.0f);
+
+            v.sub("TRICK_METER", 10.0f);
+        }
+
+        // Trick Type 1
+        if (v.get("TRICK_TYPE") == 1) {
+            velX *= 2.0f;
+            velY = v.get("JUMP_VAR");
+            v.set("COYOTE_TIME", 0.0f);
+            v.set("JUMP_BUFFER", 0.0f);
+
+            v.sub("TRICK_METER", 10.0f);
+        }
     }
 }

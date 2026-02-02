@@ -9,3 +9,4 @@ void CharacterMovement(EntityManager &em, size_t i);
 
 void CharacterJump(EntityManager &em, size_t i);
 void CharacterDash(EntityManager &em, size_t i);
+void CharacterTricks(EntityManager &em, size_t i);

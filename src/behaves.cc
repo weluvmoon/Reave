@@ -1,4 +1,6 @@
 #include "include/behaves.h"
+#include "include/collision.h"
+#include "include/constants.h"
 #include "include/data.h"
 #include "include/entities.h"
 #include <raylib.h>
@@ -14,10 +16,8 @@ void BehaveSystem(EntityManager &em, size_t i) {
     if (cfgIt == em.ConfigMap.end())
         return;
 
-    // Reference to this entity's specific configuration
     const EntityConfig &cfg = cfgIt->second;
 
-    // 2. Access component values (EntityBehaves structs)
     auto &v = em.vars[i];
     auto &b = em.behs[i];
 
@@ -37,6 +37,24 @@ void BehaveSystem(EntityManager &em, size_t i) {
             if (em.physics.walled[i]) {
                 em.physics.vel[i].x *= -1.0f;
                 em.SyncRect(em, i);
+            }
+        }
+
+        if (behavior == "chase_player") {
+            float chaseSize = 400.0f * em.rendering.scale[i];
+            Rectangle chaseRect = {em.physics.pos[i].x - chaseSize / 2,
+                                   em.physics.pos[i].y - chaseSize / 2,
+                                   chaseSize, chaseSize};
+
+            auto colRes = cS.CheckCollisions(em, chaseRect, i);
+
+            if (colRes.typeID != EntityTys::TYCHARACTER)
+                return;
+
+            if (em.physics.pos[i].x > colRes.pos.x) {
+                em.physics.vel[i].x = v.get("MAX_SPEED");
+            } else if (em.physics.pos[i].x < colRes.pos.x) {
+                em.physics.vel[i].x = -v.get("MAX_SPEED");
             }
         }
 
