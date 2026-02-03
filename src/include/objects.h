@@ -3,3 +3,4 @@
 #include <cstddef>
 
 void ObjectSystem(EntityManager &em, size_t i);
+void ObjectDrawing(EntityManager &em, size_t i);

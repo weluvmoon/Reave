@@ -62,6 +62,18 @@ void CharacterSystem(EntityManager &em, size_t i) {
     CharacterMovement(em, i);
 }
 
+void CharacterDrawing(EntityManager &em, size_t i) {
+	if (em.rendering.typeID[i] != EntityRegistry["CHARACTER"])
+        return;
+    auto &v = em.vars[i];
+    
+	const Rectangle &r = {em.physics.pos[i].x, em.physics.pos[i].y - 25, v.get("TRICK_METER"), 10};
+    
+    Texture2D pixelTex = am.textures[TEX_DEF];
+	DrawTexturePro(pixelTex, {0, 0, 1, 1}, r, {0, 0}, 0.0f,
+					em.rendering.col[i]);
+}
+
 void CharacterMovement(EntityManager &em, size_t i) {
     auto &v = em.vars[i];
     float dt = GetFrameTime();
@@ -119,6 +131,7 @@ void CharacterMovement(EntityManager &em, size_t i) {
         } else {
             velX *= 0.8f;
             if (std::abs(velX) < 0.01f)
+            
                 velX = 0.0f;
         }
     }
@@ -226,8 +239,8 @@ void CharacterTricks(EntityManager &em, size_t i) {
     float &velX = em.physics.vel[i].x;
     float &velY = em.physics.vel[i].y;
 
-    v.add("TRICK_METER", dt);
-
+	v.add("TRICK_METER", dt);
+    
     DrawText("Hello", em.physics.pos[i].x, em.physics.pos[i].y, 12, BLACK);
 
     if (IsKeyPressed(KEY_TRICK_A) && v.get("TRICK_METER") > 0.0f) {

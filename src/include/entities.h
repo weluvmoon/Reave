@@ -41,5 +41,6 @@ struct EntityManager {
 };
 
 void EntitySystem(EntityManager &em);
+void EntityDrawing(EntityManager &em);
 
 extern EntityManager em;

@@ -16,7 +16,6 @@ int main() {
     const int FrameCap = 60;
 
     InitWindow(screenWidth, screenHeight, "Beta");
-    SetAudioStreamBufferSizeDefault(8192);
     InitAudioDevice();
     SetTargetFPS(FrameCap);
 

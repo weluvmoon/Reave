@@ -9,3 +9,5 @@ void ObjectSystem(EntityManager &em, size_t i) {
     if (em.rendering.typeID[i] == EntityTys::TYHURTBOX) {
     }
 }
+
+void ObjectDrawing(EntityManager &em, size_t i) {}

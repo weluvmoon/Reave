@@ -3,6 +3,7 @@
 #include <cstddef>
 
 void CharacterSystem(EntityManager &em, size_t i);
+void CharacterDrawing(EntityManager &em, size_t i);
 
 void CharacterStates(EntityManager &em, size_t i);
 void CharacterMovement(EntityManager &em, size_t i);

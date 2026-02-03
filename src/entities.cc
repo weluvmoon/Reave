@@ -550,3 +550,14 @@ void EntitySystem(EntityManager &em) {
         BehaveSystem(em, i);
     }
 }
+
+void EntityDrawing(EntityManager &em) {
+    for (size_t i = 0; i < em.rendering.typeID.size(); ++i) {
+		ObjectDrawing(em, i);
+        CharacterDrawing(em, i);
+        EnemyDrawing(em, i);
+        
+        BehaveDrawing(em, i);
+    }
+}
+

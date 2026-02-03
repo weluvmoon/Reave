@@ -28,9 +28,7 @@ build/%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 	
 run: $(TARGET)
-	@echo "Running $(TARGET) with game audio priority..."
-	@export LD_LIBRARY_PATH=$${LD_LIBRARY_PATH}:. && \
-	PULSE_PROP="media.role=game" ./$(TARGET)
+	./$(TARGET)
 
 debug: $(TARGET)
 	@echo "Launching GDB..."

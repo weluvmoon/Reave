@@ -201,7 +201,6 @@ struct AssetManager {
 
     void Startup() {
         if (IsAudioDeviceReady()) {
-            SetMasterVolume(1.0f); // Ensure master volume isn't 0
             LoadTextures();
             LoadSfx();
             LoadMusic();

@@ -117,6 +117,7 @@ void Game::DrawState() {
         BeginMode2D(camera);
 
         em.DrawAll(camera);
+        EntityDrawing(em);
 
         DrawCircle(50, 50, 50, BLACK);
         EndMode2D();
@@ -125,6 +126,7 @@ void Game::DrawState() {
         BeginMode2D(camera);
 
         em.DrawAll(camera);
+        EntityDrawing(em);
 
         DrawGrid();
         DrawRectangleLinesEx(removeRect, 2.0f, BLACK);

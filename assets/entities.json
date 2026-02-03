@@ -268,7 +268,10 @@
       200,
       200,
       255
-    ]
+    ],
+    "behaviors": {
+      "hazard": 1.0
+    }
   },
   "BULLET": {
     "size": [

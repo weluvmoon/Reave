@@ -19,3 +19,5 @@ void EnemySystem(EntityManager &em, size_t i) {
         return;
     }
 }
+
+void EnemyDrawing(EntityManager &em, size_t i) {}

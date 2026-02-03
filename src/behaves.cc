@@ -70,3 +70,37 @@ void BehaveSystem(EntityManager &em, size_t i) {
         }
     }
 }
+
+void BehaveDrawing(EntityManager &em, size_t i) {
+    int id = em.rendering.typeID[i];
+    auto nameIt = IdToName.find(id);
+    if (nameIt == IdToName.end())
+        return;
+
+    auto cfgIt = em.ConfigMap.find(nameIt->second);
+    if (cfgIt == em.ConfigMap.end())
+        return;
+
+    const EntityConfig &cfg = cfgIt->second;
+
+    auto &v = em.vars[i];
+
+    for (auto const &[behavior, behaviorValue] : cfg.customBehs) {
+
+        // --- Tile Behaviors ---
+        if (behavior == "one_way") {
+            if (em.rendering.varID[i] == 0) {
+            } else if (em.rendering.varID[i] == 1) {
+            } else if (em.rendering.varID[i] == 2) {
+            } else if (em.rendering.varID[i] == 3) {
+            }
+        }
+
+        // --- Enemy Behaviors ---
+        if (behavior == "flip_on_wall") {}
+
+        if (behavior == "chase_player") {}
+
+        if (behavior == "jump_on_ground") {}
+    }
+}
