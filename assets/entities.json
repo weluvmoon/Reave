@@ -85,7 +85,6 @@
     }
   },
   "CHARACTER": {
-    "vID": 1,
     "size": [
       20.0,
       24.0
@@ -173,6 +172,7 @@
     "behaviors": {
       "enemy": 1.0,
       "flip_on_wall": 1.0,
+      "flip_on_edge": 1.0,
       "jump_on_wall": 1.0,
       "chase_player": 1.0
     },

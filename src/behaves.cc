@@ -22,7 +22,6 @@ void BehaveSystem(EntityManager &em, size_t i) {
     auto &b = em.behs[i];
 
     for (auto const &[behavior, behaviorValue] : cfg.customBehs) {
-
         // --- Tile Behaviors ---
         if (behavior == "one_way") {
             if (em.rendering.varID[i] == 0) {
@@ -34,9 +33,47 @@ void BehaveSystem(EntityManager &em, size_t i) {
 
         // --- Enemy Behaviors ---
         if (behavior == "flip_on_wall") {
+            if (!em.physics.initialized[i]) {
+                if (v.has("MAX_SPEED")) {
+                    em.physics.vel[i].x = v.get("MAX_SPEED");
+                } else {
+                    em.physics.vel[i].x = 100.0f;
+                }
+                em.physics.initialized[i] = true;
+                return;
+            }
             if (em.physics.walled[i]) {
                 em.physics.vel[i].x *= -1.0f;
                 em.SyncRect(em, i);
+            }
+        }
+
+        if (behavior == "jump_on_ground") {
+            if (em.physics.grounded[i]) {
+                if (v.has("JUMP_VAR")) {
+                    float jumpVel = v.get("JUMP_VAR");
+                    em.physics.vel[i].y = jumpVel;
+                } else if (cfg.customVars.count("JUMP_VAR")) {
+                    em.physics.vel[i].y = cfg.customVars.at("JUMP_VAR");
+                }
+            }
+        }
+
+        if (behavior == "jump_on_wall") {
+            Rectangle wallRect = {
+                em.physics.pos[i].x - em.physics.siz[i].x * 1.25f,
+                em.physics.pos[i].y + em.physics.siz[i].y / 2.0f,
+                em.physics.siz[i].x * 1.5f,
+                2.0f,
+            };
+
+            auto colRes = cS.CheckCollisions(em, wallRect, i);
+
+            if (colRes.typeID != EntityTys::TYTILE)
+                return;
+
+            if (em.physics.grounded[i]) {
+                em.physics.vel[i].y = v.get("JUMP_VAR");
             }
         }
 
@@ -57,17 +94,6 @@ void BehaveSystem(EntityManager &em, size_t i) {
                 em.physics.vel[i].x = -v.get("MAX_SPEED");
             }
         }
-
-        if (behavior == "jump_on_ground") {
-            if (em.physics.grounded[i]) {
-                if (v.has("JUMP_VAR")) {
-                    float jumpVel = v.get("JUMP_VAR");
-                    em.physics.vel[i].y = jumpVel;
-                } else if (cfg.customVars.count("JUMP_VAR")) {
-                    em.physics.vel[i].y = cfg.customVars.at("JUMP_VAR");
-                }
-            }
-        }
     }
 }
 
@@ -86,7 +112,6 @@ void BehaveDrawing(EntityManager &em, size_t i) {
     auto &v = em.vars[i];
 
     for (auto const &[behavior, behaviorValue] : cfg.customBehs) {
-
         // --- Tile Behaviors ---
         if (behavior == "one_way") {
             if (em.rendering.varID[i] == 0) {
@@ -97,10 +122,19 @@ void BehaveDrawing(EntityManager &em, size_t i) {
         }
 
         // --- Enemy Behaviors ---
-        if (behavior == "flip_on_wall") {}
+        if (behavior == "enemy") {
+            DrawText("ENEMY", em.physics.pos[i].x,
+                     (em.physics.pos[i].y - em.physics.siz[i].y / 2), 10,
+                     em.rendering.col[i]);
+        }
 
-        if (behavior == "chase_player") {}
+        if (behavior == "flip_on_wall") {
+        }
 
-        if (behavior == "jump_on_ground") {}
+        if (behavior == "jump_on_ground") {
+        }
+
+        if (behavior == "chase_player") {
+        }
     }
 }

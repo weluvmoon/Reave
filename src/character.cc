@@ -30,8 +30,9 @@ void CharacterSystem(EntityManager &em, size_t i) {
         v.set("JUMP_VAR", -750.0f);
         v.set("DASH_VAR", 750.0f);
 
-        v.set("TRICK_TYPE", 1);
+        v.set("TRICK_TYPE", 0);
         v.set("TRICK_METER", 100.0f);
+        v.set("TRICK_METER_MAX", 100.0f);
 
         v.set("CAN_JUMP", false);
         v.set("CAN_WALL_JUMP", false);
@@ -63,15 +64,54 @@ void CharacterSystem(EntityManager &em, size_t i) {
 }
 
 void CharacterDrawing(EntityManager &em, size_t i) {
-	if (em.rendering.typeID[i] != EntityRegistry["CHARACTER"])
+    if (em.rendering.typeID[i] != EntityRegistry["CHARACTER"])
         return;
     auto &v = em.vars[i];
-    
-	const Rectangle &r = {em.physics.pos[i].x, em.physics.pos[i].y - 25, v.get("TRICK_METER"), 10};
-    
     Texture2D pixelTex = am.textures[TEX_DEF];
-	DrawTexturePro(pixelTex, {0, 0, 1, 1}, r, {0, 0}, 0.0f,
-					em.rendering.col[i]);
+
+    // Health Bar Drawing
+
+    const Rectangle &healthRectX = {
+        em.physics.pos[i].x - (em.stats.health[i] / 4.0f) +
+            (em.physics.siz[i].x / 2.0f),
+        em.physics.pos[i].y - 15.0f, em.stats.health[i] / 2.0f, 5.0f};
+    const Rectangle &healthRectY = {em.physics.pos[i].x - 15.0f,
+                                    em.physics.pos[i].y -
+                                        (em.stats.health[i] / 4.0f) +
+                                        (em.physics.siz[i].y / 2.0f),
+                                    5.0f, em.stats.health[i] / 2.0f};
+    const Rectangle &healthRectOutlineY = {
+        healthRectY.x - healthRectY.width * 0.25f,
+        healthRectY.y - healthRectY.height * 0.25f, healthRectY.width * 1.5f,
+        healthRectY.height * 1.5f};
+
+    DrawTexturePro(pixelTex, {0, 0, 1, 1}, healthRectOutlineY, {0, 0}, 0.0f,
+                   BLACK);
+    DrawTexturePro(pixelTex, {0, 0, 1, 1}, healthRectY, {0, 0}, 0.0f, RED);
+
+    // Trick Meter Drawing
+    const Rectangle &trickRectX = {
+        em.physics.pos[i].x - (v.get("TRICK_METER") / 4.0f) +
+            (em.physics.siz[i].x / 2.0f),
+        em.physics.pos[i].y - 25.0f, v.get("TRICK_METER") / 2.0f, 10.0f};
+    const Rectangle &trickRectY = {em.physics.pos[i].x - 25.0f,
+                                   em.physics.pos[i].y -
+                                       (v.get("TRICK_METER") / 4.0f) +
+                                       (em.physics.siz[i].y / 2.0f),
+                                   5.0f, v.get("TRICK_METER") / 2.0f};
+    const Rectangle &trickRectOutlineX = {
+        trickRectX.x - trickRectX.width * 0.25f,
+        trickRectX.y - trickRectX.height * 0.25f, trickRectX.width * 1.5f,
+        trickRectX.height * 1.5f};
+    const Rectangle &trickRectOutlineY = {
+        trickRectY.x - trickRectY.width * 0.25f,
+        trickRectY.y - trickRectY.height * 0.25f, trickRectY.width * 1.5f,
+        trickRectY.height * 1.5f};
+
+    DrawTexturePro(pixelTex, {0, 0, 1, 1}, trickRectOutlineY, {0, 0}, 0.0f,
+                   BLACK);
+    DrawTexturePro(pixelTex, {0, 0, 1, 1}, trickRectY, {0, 0}, 0.0f,
+                   em.rendering.col[i]);
 }
 
 void CharacterMovement(EntityManager &em, size_t i) {
@@ -131,7 +171,7 @@ void CharacterMovement(EntityManager &em, size_t i) {
         } else {
             velX *= 0.8f;
             if (std::abs(velX) < 0.01f)
-            
+
                 velX = 0.0f;
         }
     }
@@ -173,12 +213,10 @@ void CharacterJump(EntityManager &em, size_t i) {
 
         // --- SUPER JUMP LOGIC ---
         if (v["DASH_DURATION"] > 0) {
-            // Preserve horizontal dash speed but allow vertical jump
             velY = v["JUMP_VAR"];
             velX *= 1.5f;
             v["DASH_DURATION"] = 0;
         } else {
-            // Normal Jump
             velY = v["JUMP_VAR"];
         }
 
@@ -200,7 +238,7 @@ void CharacterJump(EntityManager &em, size_t i) {
     }
 
     if (IsKeyReleased(KEY_JUMP) && velY < 0) {
-        velY *= 0.5f;
+        velY = 0.0f;
     }
 }
 
@@ -239,13 +277,14 @@ void CharacterTricks(EntityManager &em, size_t i) {
     float &velX = em.physics.vel[i].x;
     float &velY = em.physics.vel[i].y;
 
-	v.add("TRICK_METER", dt);
-    
-    DrawText("Hello", em.physics.pos[i].x, em.physics.pos[i].y, 12, BLACK);
+    if (v.get("TRICK_METER") < 0.0f)
+        v.set("TRICK_METER", 0.0f);
+    else if (v.get("TRICK_METER") < v.get("TRICK_METER_MAX"))
+        v.add("TRICK_METER", (dt * 2));
 
     if (IsKeyPressed(KEY_TRICK_A) && v.get("TRICK_METER") > 0.0f) {
         // Trick Type 0
-        if (v.get("TRICK_TYPE") == 0) {
+        if (v.get("TRICK_TYPE") == 0 && v.get("TRICK_METER") > 10.0f) {
             velY = v.get("JUMP_VAR");
             v.set("COYOTE_TIME", 0.0f);
             v.set("JUMP_BUFFER", 0.0f);
@@ -254,7 +293,7 @@ void CharacterTricks(EntityManager &em, size_t i) {
         }
 
         // Trick Type 1
-        if (v.get("TRICK_TYPE") == 1) {
+        if (v.get("TRICK_TYPE") == 1 && v.get("TRICK_METER") > 10.0f) {
             velY = v.get("JUMP_VAR") * std::abs(velX) / 120.0f;
             v.set("COYOTE_TIME", 0.0f);
             v.set("JUMP_BUFFER", 0.0f);

@@ -560,4 +560,3 @@ void EntityDrawing(EntityManager &em) {
         BehaveDrawing(em, i);
     }
 }
-
