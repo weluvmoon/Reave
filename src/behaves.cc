@@ -19,7 +19,6 @@ void BehaveSystem(EntityManager &em, size_t i) {
     const EntityConfig &cfg = cfgIt->second;
 
     auto &v = em.vars[i];
-    auto &b = em.behs[i];
 
     for (auto const &[behavior, behaviorValue] : cfg.customBehs) {
         // --- Tile Behaviors ---
@@ -78,7 +77,7 @@ void BehaveSystem(EntityManager &em, size_t i) {
         }
 
         if (behavior == "chase_player") {
-            float chaseSize = 400.0f * em.rendering.scale[i];
+            float chaseSize = 400.0f;
             Rectangle chaseRect = {em.physics.pos[i].x - chaseSize / 2,
                                    em.physics.pos[i].y - chaseSize / 2,
                                    chaseSize, chaseSize};

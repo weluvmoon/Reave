@@ -1,3 +1,4 @@
+#include "include/entities.h"
 #include "include/assets.h"
 #include "include/behaves.h"
 #include "include/character.h"
@@ -5,9 +6,10 @@
 #include "include/constants.h"
 #include "include/data.h"
 #include "include/enemies.h"
-#include "include/entities.h"
 #include "include/objects.h"
 #include "include/tiles.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -18,6 +20,7 @@ void EntityManager::Reserve(size_t capacity) {
     physics.pos.reserve(capacity);
     physics.vel.reserve(capacity);
     physics.siz.reserve(capacity);
+    physics.scale.reserve(capacity);
     physics.rect.reserve(capacity);
     physics.rectX.reserve(capacity);
     physics.rectY.reserve(capacity);
@@ -33,7 +36,6 @@ void EntityManager::Reserve(size_t capacity) {
     rendering.varID.reserve(capacity);
     rendering.typeID.reserve(capacity);
     rendering.rotation.reserve(capacity);
-    rendering.scale.reserve(capacity);
     rendering.texDraw.reserve(capacity);
     rendering.frameNum.reserve(capacity);
     rendering.rowIndex.reserve(capacity);
@@ -53,6 +55,7 @@ size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
     physics.pos.push_back(pos);
     physics.vel.push_back({0, 0});
     physics.siz.push_back(siz);
+    physics.scale.push_back({1.0f, 1.0f});
     physics.mass.push_back(1.0f);
     physics.gravity.push_back(gravity);
     physics.active.push_back(true);
@@ -68,7 +71,6 @@ size_t EntityManager::AddEntity(int typeID, int varID, Vector2 pos, Vector2 siz,
     rendering.typeID.push_back(typeID);
     rendering.col.push_back(col);
     rendering.rotation.push_back(0.0f);
-    rendering.scale.push_back(0.0f);
     rendering.texDraw.push_back(false);
     rendering.frameNum.push_back(0);
     rendering.rowIndex.push_back(0);
@@ -101,6 +103,7 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
     physics.pos.push_back(pos);
     physics.vel.push_back({0, 0});
     physics.siz.push_back(cfg.size);
+    physics.scale.push_back({1.0f, 1.0f});
     physics.rect.push_back({pos.x, pos.y, cfg.size.x, cfg.size.y});
     physics.rectX.push_back({0, 0, 0, 0});
     physics.rectY.push_back({0, 0, 0, 0});
@@ -118,7 +121,6 @@ size_t EntityManager::AddEntityJ(std::string typeName, Vector2 pos) {
     rendering.col.push_back(cfg.color);
 
     rendering.rotation.push_back(0.0f);
-    rendering.scale.push_back(cfg.scale);
     rendering.texDraw.push_back(cfg.texDraw);
     rendering.frameNum.push_back(cfg.frameNum);
     rendering.rowIndex.push_back(cfg.rowIndex);
@@ -276,19 +278,85 @@ void EntityManager::DrawAll(Camera2D camera) {
     Rectangle view = {topLeft.x, topLeft.y, bottomRight.x - topLeft.x,
                       bottomRight.y - topLeft.y};
 
+    Texture2D pixelTex = am.textures[TEX_DEF];
+
     for (size_t i = 0; i < physics.pos.size(); ++i) {
         if (!physics.active[i])
             continue;
-
         const Rectangle &r = physics.rect[i];
 
-        // Frustum Culling Check
-        if (r.x + r.width > view.x && r.x < view.x + view.width &&
-            r.y + r.height > view.y && r.y < view.y + view.height) {
+        if (CheckCollisionRecs(r, view)) {
+            float sX = physics.scale[i].x;
+            float sY = physics.scale[i].y;
+            float rot = rendering.rotation[i];
+            Color col = rendering.col[i];
+            Vector2 vel = physics.vel[i];
+            float speed = Vector2Length(vel);
 
-            Texture2D pixelTex = am.textures[TEX_DEF];
-            DrawTexturePro(pixelTex, {0, 0, 1, 1}, r, {0, 0}, 0.0f,
-                           rendering.col[i]);
+            Rectangle dest = {r.x + r.width / 2.0f, r.y + r.height,
+                              r.width * sX, r.height * sY};
+            Vector2 origin = {(r.width * sX) / 2.0f, r.height * sY};
+
+            // --- 2. MASSIVE NEEDLE AFTERIMAGES ---
+            // Increased speed threshold for "Power Trails"
+            if (speed > 400.0f || sY > 1.3f) {
+                Vector2 moveDir = Vector2Normalize(vel);
+                float travelAngle = fabsf(moveDir.x);
+
+                for (int j = 1; j <= 5;
+                     j++) { // Increased to 5 ghosts for massive length
+                    // Spacing: Pushes ghosts further apart at high speed
+                    float spacing = (speed * 0.025f) * (float)j;
+
+                    // Base Decay (Shrinks the ghost overall as it gets older)
+                    float baseDecay = 1.0f - (j * 0.12f);
+                    // Needle Thinning (Aggressively thins the perpendicular
+                    // axis)
+                    float needleThin = 1.0f - (j * 0.22f);
+                    // Massive Expansion (Stretches the parallel axis to look
+                    // "Bigger/Longer")
+                    float massiveStretch = 1.0f + (j * 0.45f);
+
+                    if (baseDecay < 0.05f)
+                        baseDecay = 0.05f;
+                    if (needleThin < 0.02f)
+                        needleThin = 0.02f;
+
+                    float ghostW = r.width * sX * baseDecay;
+                    float ghostH = r.height * sY * baseDecay;
+
+                    // Apply Axis-Aware Needle Sharpening
+                    if (travelAngle > 0.5f) {     // Horizontal Movement
+                        ghostW *= massiveStretch; // Stretch Width (Longer)
+                        ghostH *= needleThin;     // Thin Height (Sharper)
+                    } else {                      // Vertical Movement
+                        ghostH *= massiveStretch; // Stretch Height (Longer)
+                        ghostW *= needleThin;     // Thin Width (Sharper)
+                    }
+
+                    Rectangle tDest = {dest.x - (moveDir.x * spacing),
+                                       dest.y - (moveDir.y * spacing), ghostW,
+                                       ghostH};
+                    Vector2 tOrigin = {ghostW / 2.0f, ghostH};
+
+                    // Fade out slower so the long trail is clearly visible
+                    DrawTexturePro(pixelTex, {0, 0, 1, 1}, tDest, tOrigin, rot,
+                                   Fade(col, 0.45f / j));
+                }
+            }
+
+            // --- 3. Main Entity ---
+            DrawTexturePro(pixelTex, {0, 0, 1, 1}, dest, origin, rot, col);
+
+            // --- 4. Heavy Landing & Screen Shake ---
+            if (sY < 0.99f && physics.grounded[i]) {
+                if (vars[i].get("AIR_TIME") > 1.0f) {
+                    vars[i].set("AIR_TIME", 0.0f);
+                }
+                // Impact Ring
+                DrawCircleV({dest.x, dest.y}, r.width * (1.0f - sY) * 3.0f,
+                            Fade(BLACK, 0.4f));
+            }
         }
     }
 }
@@ -301,6 +369,7 @@ void EntityManager::FastRemove(size_t index) {
         physics.pos[index] = physics.pos[last];
         physics.vel[index] = physics.vel[last];
         physics.siz[index] = physics.siz[last];
+        physics.scale[index] = physics.scale[last];
         physics.rect[index] = physics.rect[last];
         physics.rectX[index] = physics.rectX[last];
         physics.rectY[index] = physics.rectY[last];
@@ -315,7 +384,6 @@ void EntityManager::FastRemove(size_t index) {
         rendering.typeID[index] = rendering.typeID[last];
         rendering.col[index] = rendering.col[last];
         rendering.rotation[index] = rendering.rotation[last];
-        rendering.scale[index] = rendering.scale[last];
         rendering.texDraw[index] = rendering.texDraw[last];
         rendering.frameNum[index] = rendering.frameNum[last];
         rendering.rowIndex[index] = rendering.rowIndex[last];
@@ -335,6 +403,7 @@ void EntityManager::FastRemove(size_t index) {
     physics.pos.pop_back();
     physics.vel.pop_back();
     physics.siz.pop_back();
+    physics.scale.pop_back();
     physics.rect.pop_back();
     physics.rectX.pop_back();
     physics.rectY.pop_back();
@@ -349,7 +418,6 @@ void EntityManager::FastRemove(size_t index) {
     rendering.typeID.pop_back();
     rendering.col.pop_back();
     rendering.rotation.pop_back();
-    rendering.scale.pop_back();
     rendering.texDraw.pop_back();
     rendering.frameNum.pop_back();
     rendering.rowIndex.pop_back();
@@ -367,6 +435,7 @@ void EntityManager::FastRemove(size_t index) {
 void EntityManager::ClearAll() {
     physics.pos.clear();
     physics.vel.clear();
+    physics.scale.clear();
     physics.siz.clear();
     physics.rect.clear();
     physics.rectX.clear();
@@ -382,7 +451,6 @@ void EntityManager::ClearAll() {
     rendering.typeID.clear();
     rendering.col.clear();
     rendering.rotation.clear();
-    rendering.scale.clear();
     rendering.texDraw.clear();
     rendering.frameNum.clear();
     rendering.rowIndex.clear();
@@ -406,15 +474,18 @@ int EntityManager::GetActiveCount() {
 }
 
 void EntityManager::SyncRect(EntityManager &em, size_t i) {
+    // The main bounding box
     em.physics.rect[i] = {em.physics.pos[i].x, em.physics.pos[i].y,
                           em.physics.siz[i].x, em.physics.siz[i].y};
 
+    // Horizontal Probe (Center line, height of 2px)
     em.physics.rectX[i] = {em.physics.pos[i].x,
-                           em.physics.pos[i].y + em.physics.siz[i].y * 0.5f -
+                           em.physics.pos[i].y + (em.physics.siz[i].y * 0.5f) -
                                1.0f,
                            em.physics.siz[i].x, 2.0f};
 
-    em.physics.rectY[i] = {em.physics.pos[i].x + em.physics.siz[i].x * 0.5f -
+    // Vertical Probe (Center line, width of 2px)
+    em.physics.rectY[i] = {em.physics.pos[i].x + (em.physics.siz[i].x * 0.5f) -
                                1.0f,
                            em.physics.pos[i].y, 2.0f, em.physics.siz[i].y};
 }
@@ -553,10 +624,10 @@ void EntitySystem(EntityManager &em) {
 
 void EntityDrawing(EntityManager &em) {
     for (size_t i = 0; i < em.rendering.typeID.size(); ++i) {
-		ObjectDrawing(em, i);
+        ObjectDrawing(em, i);
         CharacterDrawing(em, i);
         EnemyDrawing(em, i);
-        
+
         BehaveDrawing(em, i);
     }
 }

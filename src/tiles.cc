@@ -1,6 +1,6 @@
+#include "include/tiles.h"
 #include "include/data.h"
 #include "include/entities.h"
-#include "include/tiles.h"
 #include <raylib.h>
 
 void TileSystem(EntityManager &em, size_t i) {
@@ -8,6 +8,7 @@ void TileSystem(EntityManager &em, size_t i) {
         return;
 
     if (!em.physics.initialized[i]) {
+        em.rendering.col[i] = BLACK;
         em.physics.gravity[i] = 0;
         em.stats.maxHealth[i] = 100.0f;
 

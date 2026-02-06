@@ -73,6 +73,7 @@ struct PhysicsComponent {
     std::vector<Vector2> pos;
     std::vector<Vector2> vel;
     std::vector<Vector2> siz;
+    std::vector<Vector2> scale;
     std::vector<Rectangle> rect;
     std::vector<Rectangle> rectX;
     std::vector<Rectangle> rectY;
@@ -90,7 +91,6 @@ struct RenderComponent {
     std::vector<Color> col;
     std::vector<Texture2D> texture;
     std::vector<float> rotation;
-    std::vector<float> scale;
 
     std::vector<bool> texDraw;
     std::vector<int> frameNum, rowIndex;

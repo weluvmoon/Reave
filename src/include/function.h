@@ -19,6 +19,39 @@ class FunctionManager {
     void DrawWavingCircleLine(Vector2 position, int segments, float baseRadius,
                               float waveAmplitude, float waveFrequency,
                               float time, Color color);
+
+    // --- Penner Easing Functions ---
+    // t = current time, b = start value, c = change in value, d = duration
+    struct Ease {
+        static float InQuad(float t, float b, float c, float d) {
+            t /= d;
+            return c * t * t + b;
+        }
+
+        static float OutQuad(float t, float b, float c, float d) {
+            t /= d;
+            return -c * t * (t - 2) + b;
+        }
+
+        static float InOutQuad(float t, float b, float c, float d) {
+            t /= d / 2;
+            if (t < 1)
+                return c / 2 * t * t + b;
+            t--;
+            return -c / 2 * (t * (t - 2) - 1) + b;
+        }
+
+        static float OutElastic(float t, float b, float c, float d) {
+            if (t == 0)
+                return b;
+            if ((t /= d) == 1)
+                return b + c;
+            float p = d * .3f;
+            float s = p / 4;
+            return (c * powf(2, -10 * t) * sinf((t * d - s) * (2 * PI) / p) +
+                    c + b);
+        }
+    };
 };
 
 struct InstanceData {
