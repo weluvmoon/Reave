@@ -28,7 +28,7 @@ void CharacterSystem(EntityManager &em, size_t i) {
         v.set("GRAV_A", 1.0f);
         v.set("GRAV_N", 18.0f);
         v.set("GRAV_M", 40.0f);
-        v.set("JUMP_VAR", -750.0f);
+        v.set("JUMP_VAR", 750.0f);
         v.set("DASH_VAR", 950.0f);
 
         v.set("TRICK_TYPE", 0);
@@ -301,7 +301,7 @@ void CharacterJump(EntityManager &em, size_t i) {
                                                 : (velX > 0 ? -1.0f : 1.0f);
 
         velX = kickDir * v.get("MAX_SPEED");
-        velY = v.get("JUMP_VAR") * 0.9f;
+        velY = -v.get("JUMP_VAR") * 0.9f;
 
         v.set("SCALE_TWEEN_TIME", 0.0f);
         v.set("SCALE_TWEEN_DURATION", 0.4f);
@@ -321,11 +321,11 @@ void CharacterJump(EntityManager &em, size_t i) {
 
     if (v.get("JUMP_BUFFER") > 0 && v.get("COYOTE_TIME") > 0) {
         if (v.get("DASH_DURATION") > 0) {
-            velY = v.get("JUMP_VAR");
-            velX *= 1.3f;
+            velY = -v.get("DASH_VAR");
+            velX *= 1.5f;
             v.set("DASH_DURATION", 0);
         } else {
-            velY = v.get("JUMP_VAR");
+            velY = -v.get("JUMP_VAR");
         }
 
         v.set("SCALE_TWEEN_TIME", 0.0f);
@@ -403,9 +403,8 @@ void CharacterTricks(EntityManager &em, size_t i) {
         v.set("FLASH_TIME", 0.1f);
 
         if (v.get("TRICK_TYPE") == 0) {
-            v.set("TRICK_START_VEL", v.get("JUMP_VAR"));
             v.set("SCALE_START_VAL", 1.6f);
-            velY = v.get("JUMP_VAR");
+            velY = -v.get("JUMP_VAR");
         } else if (v.get("TRICK_TYPE") == 1) {
             v.set("TRICK_START_VEL", v.get("DASH_VAR") * 1.5f);
             v.set("TRICK_DIR", (velX >= 0) ? 1.0f : -1.0f);

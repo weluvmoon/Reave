@@ -1,9 +1,9 @@
+#include "include/game.h"
 #include "include/assets.h"
 #include "include/collision.h"
 #include "include/constants.h"
 #include "include/data.h"
 #include "include/entities.h"
-#include "include/game.h"
 #include "include/mod.h"
 #include "include/network.h"
 #include "raylib.h"
@@ -59,8 +59,8 @@ void Game::UpdateState(float dt) {
         EntitySystem(em);
         cS.ResolveAll(em, dt);
 
-        cameraOffset = {GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
-        cameraZoom = 1.0f;
+        cameraOffset = {GetScreenWidth() / 1.5f, GetScreenHeight() / 1.5f};
+        cameraZoom = 0.75f;
         for (size_t i = 0; i < em.rendering.typeID.size(); ++i) {
             if (em.rendering.typeID[i] == EntityRegistry["CHARACTER"])
                 cameraTarg = {em.physics.pos[i].x - cameraOffset.x,
