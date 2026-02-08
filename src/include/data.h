@@ -83,11 +83,80 @@ struct PhysicsComponent {
     std::vector<bool> initialized;
     std::vector<bool> collide;
     std::vector<bool> grounded, walled;
+
+    void Reserve(size_t capacity) {
+        pos.reserve(capacity);
+        vel.reserve(capacity);
+        siz.reserve(capacity);
+        scale.reserve(capacity);
+        rect.reserve(capacity);
+        rectX.reserve(capacity);
+        rectY.reserve(capacity);
+        mass.reserve(capacity);
+        gravity.reserve(capacity);
+        active.reserve(capacity);
+        initialized.reserve(capacity);
+        collide.reserve(capacity);
+        grounded.reserve(capacity);
+        walled.reserve(capacity);
+    }
+
+    void Clear() {
+        pos.clear();
+        vel.clear();
+        scale.clear();
+        siz.clear();
+        rect.clear();
+        rectX.clear();
+        rectY.clear();
+        gravity.clear();
+        active.clear();
+        initialized.clear();
+        collide.clear();
+        grounded.clear();
+        walled.clear();
+    }
+
+    void Remove(size_t index) {
+        size_t last = pos.size() - 1;
+
+        // Only swap if the element we are removing is NOT the last one
+        if (index < last) {
+            pos[index] = pos[last];
+            vel[index] = vel[last];
+            siz[index] = siz[last];
+            scale[index] = scale[last];
+            rect[index] = rect[last];
+            rectX[index] = rectX[last];
+            rectY[index] = rectY[last];
+            gravity[index] = gravity[last];
+            active[index] = active[last];
+            initialized[index] = initialized[last];
+            collide[index] = collide[last];
+            grounded[index] = grounded[last];
+            walled[index] = walled[last];
+        }
+
+        // Ridiculous Speed: Pop all vectors to keep them perfectly aligned
+        pos.pop_back();
+        vel.pop_back();
+        siz.pop_back();
+        scale.pop_back();
+        rect.pop_back();
+        rectX.pop_back();
+        rectY.pop_back();
+        gravity.pop_back();
+        active.pop_back();
+        initialized.pop_back();
+        collide.pop_back();
+        grounded.pop_back();
+        walled.pop_back();
+    }
 };
 
 struct RenderComponent {
-    std::vector<int> varID;
     std::vector<int> typeID;
+    std::vector<int> varID;
     std::vector<Color> col;
     std::vector<Texture2D> texture;
     std::vector<float> rotation;
@@ -96,11 +165,89 @@ struct RenderComponent {
     std::vector<int> frameNum, rowIndex;
     std::vector<int> frameMin, frameMax;
     std::vector<float> frameSpd;
+
+    void Reserve(size_t capacity) {
+        col.reserve(capacity);
+        typeID.reserve(capacity);
+        varID.reserve(capacity);
+        rotation.reserve(capacity);
+        texDraw.reserve(capacity);
+        frameNum.reserve(capacity);
+        rowIndex.reserve(capacity);
+        frameSpd.reserve(capacity);
+        frameMin.reserve(capacity);
+        frameMax.reserve(capacity);
+    }
+
+    void Clear() {
+        typeID.clear();
+        varID.clear();
+        col.clear();
+        rotation.clear();
+        texDraw.clear();
+        frameNum.clear();
+        rowIndex.clear();
+        frameSpd.clear();
+        frameMin.clear();
+        frameMax.clear();
+    }
+
+    void Remove(size_t index) {
+        size_t last = typeID.size() - 1;
+
+        // Only swap if the element we are removing is NOT the last one
+        if (index < last) {
+            typeID[index] = typeID[last];
+            varID[index] = varID[last];
+            col[index] = col[last];
+            rotation[index] = rotation[last];
+            texDraw[index] = texDraw[last];
+            frameNum[index] = frameNum[last];
+            rowIndex[index] = rowIndex[last];
+            frameSpd[index] = frameSpd[last];
+            frameMin[index] = frameMin[last];
+            frameMax[index] = frameMax[last];
+        }
+
+        typeID.pop_back();
+        varID.pop_back();
+        col.pop_back();
+        rotation.pop_back();
+        texDraw.pop_back();
+        frameNum.pop_back();
+        rowIndex.pop_back();
+        frameSpd.pop_back();
+        frameMin.pop_back();
+        frameMax.pop_back();
+    }
 };
 
 struct StatsComponent {
     std::vector<float> health;
     std::vector<float> maxHealth;
+
+    void Reserve(size_t capacity) {
+        health.reserve(capacity);
+        maxHealth.reserve(capacity);
+    }
+
+    void Clear() {
+        health.clear();
+        maxHealth.clear();
+    }
+
+    void Remove(size_t index) {
+        size_t last = health.size() - 1;
+
+        // Only swap if the element we are removing is NOT the last one
+        if (index < last) {
+            health[index] = health[last];
+            maxHealth[index] = maxHealth[last];
+        }
+
+        health.pop_back();
+        maxHealth.pop_back();
+    }
 };
 
 struct EntityConfig {

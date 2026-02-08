@@ -4,8 +4,8 @@
 #include "include/constants.h"
 #include "include/data.h"
 #include "include/entities.h"
+#include "include/level.h"
 #include "include/mod.h"
-#include "include/network.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
@@ -31,7 +31,7 @@ void Game::Update(float dt) {
 
 void Game::Draw() { DrawState(); }
 
-void Game::Unload() { em.ClearAll(); }
+void Game::Unload() { lm.Clear(); }
 
 void Game::ManageState() {
     switch (GameState) {
@@ -79,7 +79,7 @@ void Game::UpdateState(float dt) {
         camera.target = cameraTarg;
 
         if (IsKeyPressed(KEY_SAVE)) {
-            if (em.SaveLevel("bin/content/level/level-1.json")) {
+            if (lm.Save("bin/content/level/level-1.json")) {
                 statusMessage = "Level Saved!";
             } else {
                 statusMessage = "Save Failed!";
@@ -87,7 +87,7 @@ void Game::UpdateState(float dt) {
             messageTimer = 3.0f; // Show for 3 seconds
             cS.ResetTileGrid();
         } else if (IsKeyPressed(KEY_LOAD)) {
-            if (em.LoadLevel("bin/content/level/level-1.json")) {
+            if (lm.Load("bin/content/level/level-1.json")) {
                 statusMessage = "Level Loaded!";
             } else {
                 statusMessage = "Load Failed (File Not Found)!";

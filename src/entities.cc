@@ -17,34 +17,10 @@
 void EntityManager::Reserve(size_t capacity) {
     if (capacity > 1000000)
         return;
-    physics.pos.reserve(capacity);
-    physics.vel.reserve(capacity);
-    physics.siz.reserve(capacity);
-    physics.scale.reserve(capacity);
-    physics.rect.reserve(capacity);
-    physics.rectX.reserve(capacity);
-    physics.rectY.reserve(capacity);
-    physics.mass.reserve(capacity);
-    physics.gravity.reserve(capacity);
-    physics.active.reserve(capacity);
-    physics.initialized.reserve(capacity);
-    physics.collide.reserve(capacity);
-    physics.grounded.reserve(capacity);
-    physics.walled.reserve(capacity);
 
-    rendering.col.reserve(capacity);
-    rendering.varID.reserve(capacity);
-    rendering.typeID.reserve(capacity);
-    rendering.rotation.reserve(capacity);
-    rendering.texDraw.reserve(capacity);
-    rendering.frameNum.reserve(capacity);
-    rendering.rowIndex.reserve(capacity);
-    rendering.frameSpd.reserve(capacity);
-    rendering.frameMin.reserve(capacity);
-    rendering.frameMax.reserve(capacity);
-
-    stats.health.reserve(capacity);
-    stats.maxHealth.reserve(capacity);
+    physics.Reserve(capacity);
+    rendering.Reserve(capacity);
+    stats.Reserve(capacity);
 
     vars.reserve(capacity);
     behs.reserve(capacity);
@@ -362,107 +338,9 @@ void EntityManager::DrawAll(Camera2D camera) {
 }
 
 void EntityManager::FastRemove(size_t index) {
-    size_t last = physics.pos.size() - 1;
-
-    // Only swap if the element we are removing is NOT the last one
-    if (index < last) {
-        physics.pos[index] = physics.pos[last];
-        physics.vel[index] = physics.vel[last];
-        physics.siz[index] = physics.siz[last];
-        physics.scale[index] = physics.scale[last];
-        physics.rect[index] = physics.rect[last];
-        physics.rectX[index] = physics.rectX[last];
-        physics.rectY[index] = physics.rectY[last];
-        physics.gravity[index] = physics.gravity[last];
-        physics.active[index] = physics.active[last];
-        physics.initialized[index] = physics.initialized[last];
-        physics.collide[index] = physics.collide[last];
-        physics.grounded[index] = physics.grounded[last];
-        physics.walled[index] = physics.walled[last];
-
-        rendering.varID[index] = rendering.varID[last];
-        rendering.typeID[index] = rendering.typeID[last];
-        rendering.col[index] = rendering.col[last];
-        rendering.rotation[index] = rendering.rotation[last];
-        rendering.texDraw[index] = rendering.texDraw[last];
-        rendering.frameNum[index] = rendering.frameNum[last];
-        rendering.rowIndex[index] = rendering.rowIndex[last];
-        rendering.frameSpd[index] = rendering.frameSpd[last];
-        rendering.frameMin[index] = rendering.frameMin[last];
-        rendering.frameMax[index] = rendering.frameMax[last];
-
-        stats.health[index] = stats.health[last];
-        stats.maxHealth[index] = stats.maxHealth[last];
-
-        // Ensure variables are swapped to the new index
-        vars[index] = vars[last];
-        behs[index] = behs[last];
-    }
-
-    // Ridiculous Speed: Pop all vectors to keep them perfectly aligned
-    physics.pos.pop_back();
-    physics.vel.pop_back();
-    physics.siz.pop_back();
-    physics.scale.pop_back();
-    physics.rect.pop_back();
-    physics.rectX.pop_back();
-    physics.rectY.pop_back();
-    physics.gravity.pop_back();
-    physics.active.pop_back();
-    physics.initialized.pop_back();
-    physics.collide.pop_back();
-    physics.grounded.pop_back();
-    physics.walled.pop_back();
-
-    rendering.varID.pop_back();
-    rendering.typeID.pop_back();
-    rendering.col.pop_back();
-    rendering.rotation.pop_back();
-    rendering.texDraw.pop_back();
-    rendering.frameNum.pop_back();
-    rendering.rowIndex.pop_back();
-    rendering.frameSpd.pop_back();
-    rendering.frameMin.pop_back();
-    rendering.frameMax.pop_back();
-
-    stats.health.pop_back();
-    stats.maxHealth.pop_back();
-
-    vars.pop_back();
-    behs.pop_back();
-}
-
-void EntityManager::ClearAll() {
-    physics.pos.clear();
-    physics.vel.clear();
-    physics.scale.clear();
-    physics.siz.clear();
-    physics.rect.clear();
-    physics.rectX.clear();
-    physics.rectY.clear();
-    physics.gravity.clear();
-    physics.active.clear();
-    physics.initialized.clear();
-    physics.collide.clear();
-    physics.grounded.clear();
-    physics.walled.clear();
-
-    rendering.varID.clear();
-    rendering.typeID.clear();
-    rendering.col.clear();
-    rendering.rotation.clear();
-    rendering.texDraw.clear();
-    rendering.frameNum.clear();
-    rendering.rowIndex.clear();
-    rendering.frameSpd.clear();
-    rendering.frameMin.clear();
-    rendering.frameMax.clear();
-
-    stats.health.clear();
-    stats.maxHealth.clear();
-
-    vars.clear();
-    behs.clear();
+    physics.Remove(index);
+    rendering.Remove(index);
+    stats.Remove(index);
 }
 
 int EntityManager::GetActiveCount() {
@@ -488,126 +366,6 @@ void EntityManager::SyncRect(EntityManager &em, size_t i) {
     em.physics.rectY[i] = {em.physics.pos[i].x + (em.physics.siz[i].x * 0.5f) -
                                1.0f,
                            em.physics.pos[i].y, 2.0f, em.physics.siz[i].y};
-}
-
-bool EntityManager::SaveLevel(const std::string &filename) {
-    nlohmann::json save;
-    nlohmann::json entitiesArray = nlohmann::json::array();
-    size_t count = physics.pos.size();
-
-    for (size_t i = 0; i < count; ++i) {
-        nlohmann::json entity;
-
-        entity["pos"] = {physics.pos[i].x, physics.pos[i].y};
-        entity["size"] = {physics.siz[i].x, physics.siz[i].y};
-
-        entity["gravity"] = physics.gravity[i];
-
-        entity["typeID"] = rendering.typeID[i];
-        entity["varID"] = rendering.varID[i];
-
-        entity["color"] = {rendering.col[i].r, rendering.col[i].g,
-                           rendering.col[i].b, rendering.col[i].a};
-
-        entity["health"] = stats.health[i];
-        entity["maxHealth"] = stats.maxHealth[i];
-
-        if (!vars[i].values.empty()) {
-            entity["vars"] = vars[i].values;
-        }
-        if (!behs[i].values.empty()) {
-            entity["behs"] = behs[i].values;
-        }
-
-        entitiesArray.push_back(entity);
-    }
-
-    save["entities"] = entitiesArray;
-
-    std::ofstream outFile(filename);
-    if (!outFile.is_open())
-        return false;
-
-    outFile << save.dump(4); // Use 4-space indentation for readability
-    TraceLog(LOG_INFO,
-             "FILEIO: Level saved successfully to %s. Saved %zu entities.",
-             filename.c_str(), count);
-    return true;
-}
-
-bool EntityManager::LoadLevel(const std::string &filename) {
-    std::ifstream inFile(filename);
-    if (!inFile.is_open())
-        return false;
-
-    nlohmann::json save;
-    try {
-        inFile >> save;
-    } catch (const nlohmann::json::parse_error &e) {
-        TraceLog(LOG_ERROR, "JSON PARSE ERROR in %s: %s", filename.c_str(),
-                 e.what());
-        return false;
-    }
-
-    ClearAll(); // Wipe current state
-
-    // Iterate safely through the "entities" array
-    for (auto &entityJson : save["entities"]) {
-        // 1. Extract IDs and basic numbers
-        int tID = entityJson.value("typeID", 0);
-        int vID = entityJson.value("varID", 0);
-        float grav = entityJson.value("gravity", 20.0f);
-        float hp = entityJson.value("health", 100.0f);
-        float maxHp =
-            entityJson.value("maxHealth", hp); // Default max to current hp
-
-        // 2. Extract Raylib Types (safely accessing array indices)
-        Vector2 pos = {0, 0};
-        auto p = entityJson.value("pos", std::vector<float>{0.0f, 0.0f});
-        if (p.size() >= 2) {
-            pos.x = p[0];
-            pos.y = p[1];
-        }
-
-        Vector2 siz = {32, 32};
-        auto s = entityJson.value("size", std::vector<float>{32.0f, 32.0f});
-        if (s.size() >= 2) {
-            siz.x = s[0];
-            siz.y = s[1];
-        }
-
-        Color col = WHITE;
-        auto c =
-            entityJson.value("color", std::vector<int>{255, 255, 255, 255});
-        if (c.size() >= 4) {
-            col.r = c[0];
-            col.g = c[1];
-            col.b = c[2];
-            col.a = c[3];
-        }
-
-        // 3. Re-create the entity base
-        size_t index = AddEntity(tID, vID, pos, siz, grav, col);
-
-        // 4. Restore Stats & Maps (uses .get<> to map JSON object back to
-        // std::unordered_map)
-        stats.health[index] = hp;
-        stats.maxHealth[index] = maxHp;
-
-        if (entityJson.contains("vars"))
-            vars[index].values =
-                entityJson["vars"]
-                    .get<std::unordered_map<std::string, float>>();
-
-        if (entityJson.contains("behs"))
-            behs[index].values =
-                entityJson["behs"]
-                    .get<std::unordered_map<std::string, float>>();
-    }
-
-    TraceLog(LOG_INFO, "FILEIO: Level [%s] loaded successfully.",
-             filename.c_str());
-    return true;
 }
 
 // Management Functions

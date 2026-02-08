@@ -31,13 +31,9 @@ struct EntityManager {
 
     void Compact();
     void FastRemove(size_t index);
-    void ClearAll();
     int GetActiveCount();
 
     void SyncRect(EntityManager &e, size_t i);
-
-    bool SaveLevel(const std::string &filename);
-    bool LoadLevel(const std::string &filename);
 };
 
 void EntitySystem(EntityManager &em);
